@@ -1,6 +1,6 @@
 <?php
 
-class MainController
+class Base
 {
 	public function render($file, Array $data = array())
 	{

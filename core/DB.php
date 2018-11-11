@@ -2,6 +2,30 @@
 
 class DB
 {
+	public function getOne($table, Array $where)
+	{
+		$store = Store::getInstance();
+
+		if(!$store->$table)
+		{
+			throw new Exception("Таблица не найдена");
+		} 
+
+		foreach ($store->$table as $row)
+		{
+			$cnt = 0;
+			
+			foreach ($where as $k => $v)
+			{
+				if($row[$k] == $v) $cnt++;
+			}
+
+			if($cnt === count($where)) return $row;
+		}
+
+		return false;
+	}
+
 	public function getAll($table)
 	{
 		$store = Store::getInstance();
@@ -37,22 +61,7 @@ class DB
 
 	public function update($table, Array $data, Array $where)
 	{
-		// $store = Store::getInstance();
-
-		// $tmp = array();
-		
-		// foreach ($store->$table as $row)
-		// {
-		// 	$cnt = 0;
-			
-		// 	foreach ($where as $k => $v)
-		// 	{
-		// 		if($row[$k] == $v) $cnt++;
-		// 	}
-
-		// 	if($cnt === count($where)) $tmp[] = $row;
-		// }
-
-		// return $tmp;
+		$store = Store::getInstance();
+		$store->update($table, $data, $where);
 	}
 }

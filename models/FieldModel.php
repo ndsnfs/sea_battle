@@ -5,13 +5,33 @@ class FieldModel
 	const EMPTY_CELL = 1;
 	const SHIP_CELL = 2;
 	const FAILED_CELL = 3;
-	const WOUND_CELL = 3;
+	const WOUND_CELL = 4;
 
 	private $_state = array();
 
 	public function __construct()
 	{
 		$this->_state = $this->getEmptyState();
+	}
+
+	public static function getEmptyCell()
+	{
+		return self::EMPTY_CELL;
+	}
+
+	public static function getShipCell()
+	{
+		return self::SHIP_CELL;
+	}
+
+	public static function getFailedCell()
+	{
+		return self::FAILED_CELL;
+	}
+
+	public static function getWoundCell()
+	{
+		return self::WOUND_CELL;
 	}
 
 	public function getEmptyState()

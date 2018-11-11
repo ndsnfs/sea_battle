@@ -52,7 +52,9 @@
 					<?php elseif($cellValue === 2): ?>
 					<div class="td bg-checked"></div>
 					<?php elseif($cellValue === 3): ?>
+					<div class="td">.</div>
 					<?php elseif($cellValue === 4): ?>
+					<div class="td bg-checked">x</div>
 					<?php endif ?>
 				<?php endforeach; ?>
 			</div>
@@ -67,11 +69,13 @@
 			<div class="tr">
 				<?php foreach ($row as $k => $cellValue): ?>
 					<?php if($cellValue === 1): ?>
-					<div class="td"><input type="radio" name="cell" value="[<?= $k ?>]"></div>
+					<div class="td"><input type="radio" name="cell" value="<?= $k ?>"></div>
 					<?php elseif($cellValue === 2): ?>
-					<div class="td bg-danger"><input type="radio" name="cell" value="[<?= $k ?>]"></div>
+					<div class="td bg-danger"><input type="radio" name="cell" value="<?= $k ?>"></div>
 					<?php elseif($cellValue === 3): ?>
+					<div class="td">.</div>
 					<?php elseif($cellValue === 4): ?>
+					<div class="td">x</div>
 					<?php endif ?>
 				<?php endforeach; ?>
 			</div>
@@ -84,4 +88,5 @@
 
 		<?php endif ?>
 	<?php endforeach; ?>
+	<input type="hidden" name="current_player_id" value="<?= $player->getId() ?>">
 </form>

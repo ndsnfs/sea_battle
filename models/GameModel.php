@@ -16,19 +16,35 @@ class GameModel extends MainModel
 	 */
 	public function step($currentPlayerId, $enemyPlayerId, $cell) //:bool
 	{
+		$result = false;
 		$fields = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
 
-		foreach ($fields as $row)
+		foreach ($fields as &$row)
 		{
-			foreach ($row['field_state'] as $arr)
+			foreach ($row['field_state'] as &$arr)
 			{
 				if(array_key_exists($cell, $arr))
 				{
-					echo 111;
-					exit;
+					if($arr[$cell] === FieldModel::getEmptyCell())
+					{
+						$arr[$cell] = FieldModel::getFailedCell();
+						$this->DB->update('fields', array('field_state' => $row['field_state']), array('player_id' => $enemyPlayerId));
+					}
+					elseif($arr[$cell] === FieldModel::getShipCell())
+					{
+						$result = true;
+						$arr[$cell] = FieldModel::getWoundCell();
+						$this->DB->update('fields', array('field_state' => $row['field_state']), array('player_id' => $enemyPlayerId));
+					}
+					else
+					{
+						throw new Exception("Error Processing Request");
+					}
 				}
 			}
 		}
+
+		return $result;
 	}
 
 	/**
@@ -58,6 +74,14 @@ class GameModel extends MainModel
 		}
 
 		return $arrTmp;
+	}
+
+	/**
+	 * возвращает играка
+	 */
+	public function getPlayer($playerId)
+	{
+		return $this->DB->getOne('players', array('id' => $playerId));
 	}
 
 	/**
