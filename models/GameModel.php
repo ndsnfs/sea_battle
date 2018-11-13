@@ -89,7 +89,6 @@ class GameModel extends MainModel
 	 */
 	public function getFields()
 	{
-
 		return $this->DB->getAll('fields');
 	}
 

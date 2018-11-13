@@ -1,4 +1,4 @@
-<h3>Ход делает - <?= $player->getName() ?>; id - <?= $player->getId() ?></h3>
+<h3>Ход делает - <?= $player->getName() ?></h3>
 <style type="text/css">
 	input {
 		margin: 0;
@@ -71,7 +71,7 @@
 					<?php if($cellValue === 1): ?>
 					<div class="td"><input type="radio" name="cell" value="<?= $k ?>"></div>
 					<?php elseif($cellValue === 2): ?>
-					<div class="td bg-danger"><input type="radio" name="cell" value="<?= $k ?>"></div>
+					<div class="td"><input type="radio" name="cell" value="<?= $k ?>"></div>
 					<?php elseif($cellValue === 3): ?>
 					<div class="td">.</div>
 					<?php elseif($cellValue === 4): ?>

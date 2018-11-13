@@ -1,67 +1,38 @@
 <?php
 
-class DB
+class DB implements DbDriverInterface
 {
-	public function getOne($table, Array $where)
+	private $_driver;
+
+	public function __construct()
 	{
-		$store = Store::getInstance();
-
-		if(!$store->$table)
-		{
-			throw new Exception("Таблица не найдена");
-		} 
-
-		foreach ($store->$table as $row)
-		{
-			$cnt = 0;
-			
-			foreach ($where as $k => $v)
-			{
-				if($row[$k] == $v) $cnt++;
-			}
-
-			if($cnt === count($where)) return $row;
-		}
-
-		return false;
+		global $conf;
+		$driverDb = $conf['db']['driver'];
+		$this->_driver = call_user_func($driverDb . '::getInstance');
 	}
 
-	public function getAll($table)
+	public function insert(String $table, Array $data)
 	{
-		$store = Store::getInstance();
-		return $store->$table;
+		return $this->_driver->insert($table, $data);
 	}
 
-	public function getWhere($table, Array $where)
+	public function update(string $table, Array $data, Array $where = array())
 	{
-		$store = Store::getInstance();
-
-		$tmp = array();
-		
-		foreach ($store->$table as $row)
-		{
-			$cnt = 0;
-			
-			foreach ($where as $k => $v)
-			{
-				if($row[$k] == $v) $cnt++;
-			}
-
-			if($cnt === count($where)) $tmp[] = $row;
-		}
-
-		return $tmp;
+		return $this->_driver->update($table, $data, $where);
 	}
 
-	public function insert($table, Array $data)
+	public function getOne(string $table, Array $where)
 	{
-		$store = Store::getInstance();
-		return $store->$table = $data;
+		return $this->_driver->getOne($table, $where);
 	}
 
-	public function update($table, Array $data, Array $where)
+	public function getAll(string $table)
 	{
-		$store = Store::getInstance();
-		$store->update($table, $data, $where);
+		return $this->_driver->getAll($table);
+	}
+
+	public function getWhere(string $table, Array $where)
+	{
+		return $this->_driver->getWhere($table, $where);
 	}
 }

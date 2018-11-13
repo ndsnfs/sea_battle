@@ -14,12 +14,12 @@ function initStore()
 
 		foreach ($players as $p)
 		{
-			$store->players = $p;
+			$store->insert('players', $p);
 		}
 
 		foreach ($fields as $f)
 		{
-			$store->fields = $f;
+			$store->insert('fields', $f);
 		}
 	}
 }

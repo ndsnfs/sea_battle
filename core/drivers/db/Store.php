@@ -1,15 +1,25 @@
 <?php
 
-class Store
+/**
+ *  класс Store имитирует хранилище
+ */
+class Store implements DbDriverInterface
 {
 	private static $_instance = null;
 
+	/**
+	 * содержит id, name
+	 */
 	private $_players = array(); // array(array('id' => ..., 'name' => '...'), array('id' => ..., 'name' => '...'))
-	private $_fields = array(); // array(array('player_id' => ..., 'field_state' => array(array('a:1' => 1, ...), ...), ...), ...)
 
+	/**
+	 * содержит поля player_id, field_state(нарушена первая нормальная форма)
+	 */
+	private $_fields = array(); // array(array('player_id' => ..., 'field_state' => array(array('a:1' => 1, ...), ...), ...), ...)
+	
 	private function __construct(){}
 	private function __clone(){}
-	
+
 	public static function getInstance()
 	{
 		if(self::$_instance === null)
@@ -20,33 +30,28 @@ class Store
 		return self::$_instance;
 	}
 
-	public function __get($propName)
+	/**
+	 * имитация insert
+	 * @table string
+	 * @data array
+	 */
+	public function insert(String $table, Array $data)
 	{
-		$propName = '_' . $propName;
+		$tableName = '_' . $table;
 
-		if(property_exists(__CLASS__, $propName))
+		if(property_exists(__CLASS__, $tableName))
 		{
-			return $this->$propName;
-		}
-
-		return false;
-	}
-
-	// имитация insert
-	public function __set($propName, $data)
-	{
-		$propName = '_' . $propName;
-		if(property_exists(__CLASS__, $propName))
-		{
-			$this->$propName[] = $data;
+			$this->$tableName[] = $data;
 			return true;
 		}
 
 		return false;
 	}
 
-	// имитация update
-	public function update($table, Array $data, Array $where)
+	/**
+	 * имитация update
+	 */
+	public function update(String $table, Array $data, Array $where)
 	{
 		$propName = '_' . $table;
 		if(!property_exists(__CLASS__, $propName))
@@ -81,5 +86,76 @@ class Store
 				}
 			}
 		}
+	}
+
+	/**
+	 * выбирает одну единственную строку
+	 */
+	public function getOne(String $table, Array $where)
+	{
+		$tableName = '_' . $table;
+
+		if(!property_exists(__CLASS__, $tableName))
+		{
+			throw new Exception("Таблица не найдена");
+		} 
+
+		foreach ($this->$tableName as $row)
+		{
+			$cnt = 0;
+			
+			foreach ($where as $k => $v)
+			{
+				if($row[$k] == $v) $cnt++;
+			}
+
+			if($cnt === count($where)) return $row;
+		}
+
+		return false;
+	}
+
+	/**
+	 * 
+	 */
+	public function getAll(String $table)
+	{
+		$tableName = '_' . $table;
+
+		if(!property_exists(__CLASS__, $tableName))
+		{
+			throw new Exception("Таблица не найдена");
+		}
+
+		return $this->$tableName;
+	}
+
+	/**
+	 * 
+	 */
+	public function getWhere(String $table, Array $where)
+	{
+		$tableName = '_' . $table;
+
+		if(!property_exists(__CLASS__, $tableName))
+		{
+			throw new Exception("Таблица не найдена");
+		}
+
+		$tmp = array();
+		
+		foreach ($this->$tableName as $row)
+		{
+			$cnt = 0;
+			
+			foreach ($where as $k => $v)
+			{
+				if($row[$k] == $v) $cnt++;
+			}
+
+			if($cnt === count($where)) $tmp[] = $row;
+		}
+
+		return $tmp;
 	}
 }

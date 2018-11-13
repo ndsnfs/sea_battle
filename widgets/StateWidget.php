@@ -11,9 +11,7 @@ class StateWidget
 
 	public function draw()
 	{
-		if(!is_array($this->_store->players)) return;
-		if(count($this->_store->players) === 0) return;
-
+		if(!is_array($this->_store->players) || count($this->_store->players) === 0) return;
 		$players = base64_encode(serialize($this->_store->players));
 		$fields = base64_encode(serialize($this->_store->fields));
 

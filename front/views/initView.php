@@ -21,7 +21,7 @@
 		<div class="td"><?= $x ?></div>
 		<?php endforeach; ?>
 	</div>
-	<?php foreach (range(1,10) as $y): ?>
+	<?php foreach (range(1, 10) as $y): ?>
 	<div class="tr">
 		<div class="td"><?= $y ?></div>
 		<?php foreach (range('a', 'j') as $x): ?>
