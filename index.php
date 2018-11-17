@@ -1,12 +1,14 @@
 <?php
 require_once 'autoload.php';
 require_once 'commonFuncs.php';
-require_once 'config' . DIRECTORY_SEPARATOR . 'db.php';
+require_once 'config' . DIRECTORY_SEPARATOR . 'config.php';
 
 define('VIEW_PATH', __DIR__
 							. DIRECTORY_SEPARATOR . 'front'
 							. DIRECTORY_SEPARATOR . 'views'
 							. DIRECTORY_SEPARATOR);
+
+define('ROOT_DIR', __DIR__);
 
 class Strategy extends Base
 {
@@ -61,6 +63,14 @@ class Strategy extends Base
 		));
 	}
 
+	public function reset()
+	{
+		if((new GameModel())->reset())
+		{
+			$this->redirect('');
+		}
+	}
+
 	public function page404()
 	{
 		$this->render('page404');
@@ -68,7 +78,7 @@ class Strategy extends Base
 }
 
 // заполняет склад имитируя таблицы БД(из $_POST)
-initStore();
+// initStore();
 
 $c = new Strategy();
 
@@ -76,5 +86,6 @@ switch (Input::get('page')) {
 	case '': $c->index(); break;
 	case 'init': $c->init(); break;
 	case 'step': $c->step(); break;
+	case 'reset': $c->reset(); break;
 	default: $c->page404(); break;
 }

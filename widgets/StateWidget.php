@@ -11,9 +11,11 @@ class StateWidget
 
 	public function draw()
 	{
-		if(!is_array($this->_store->players) || count($this->_store->players) === 0) return;
-		$players = base64_encode(serialize($this->_store->players));
-		$fields = base64_encode(serialize($this->_store->fields));
+		$p = $this->_store->getAll('players');
+		if(!is_array($p) || count($p) === 0) return;
+		$f = $this->_store->getAll('fields');
+		$players = base64_encode(serialize($p));
+		$fields = base64_encode(serialize($f));
 
 		echo '<input type="hidden" name="players" value="'.$players.'">';
 		echo '<input type="hidden" name="fields" value="'.$fields.'">';

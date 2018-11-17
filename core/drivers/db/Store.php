@@ -158,4 +158,16 @@ class Store implements DbDriverInterface
 
 		return $tmp;
 	}
+
+	public function clear(String $table)
+	{
+		$tableName = '_' . $table;
+
+		if(!property_exists(__CLASS__, $tableName))
+		{
+			throw new Exception("Таблица не найдена");
+		}
+
+		$this->$tableName = array();
+	}
 }

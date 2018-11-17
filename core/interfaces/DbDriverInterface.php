@@ -7,4 +7,5 @@ interface DbDriverInterface
 	public function getOne(string $table, array $data);
 	public function getAll(string $table);
 	public function getWhere(string $table, array $data);
+	public function clear(string $table);
 }

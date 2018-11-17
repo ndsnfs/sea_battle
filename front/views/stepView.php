@@ -82,7 +82,7 @@
 			<!-- TR END -->
 			<?php endforeach; ?>
 			<input type="hidden" name="enemy_player_id" value="<?= $field['player_id'] ?>">
-			<?php (new StateWidget())->draw() ?>
+			<?php // (new StateWidget())->draw() ?>
 			<input type="submit" value="огонь!" name="init" class="btn btn-block">
 		</div>
 
@@ -90,3 +90,6 @@
 	<?php endforeach; ?>
 	<input type="hidden" name="current_player_id" value="<?= $player->getId() ?>">
 </form>
+<div style="clear: both;">
+	<a href="?page=reset">exit</a>
+</div>

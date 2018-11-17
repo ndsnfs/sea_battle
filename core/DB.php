@@ -6,9 +6,10 @@ class DB implements DbDriverInterface
 
 	public function __construct()
 	{
-		global $conf;
-		$driverDb = $conf['db']['driver'];
+		global $config;
+		$driverDb = $config['db']['driver'];
 		$this->_driver = call_user_func($driverDb . '::getInstance');
+
 	}
 
 	public function insert(String $table, Array $data)
@@ -34,5 +35,10 @@ class DB implements DbDriverInterface
 	public function getWhere(string $table, Array $where)
 	{
 		return $this->_driver->getWhere($table, $where);
+	}
+
+	public function clear(String $table)
+	{
+		return $this->_driver->clear($table);
 	}
 }

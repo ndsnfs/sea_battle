@@ -29,6 +29,6 @@
 		<?php endforeach; ?>
 	</div>
 	<?php endforeach; ?>
-	<?php (new StateWidget())->draw() ?>
+	<?php // (new StateWidget())->draw() ?>
 	<input type="submit" value="сохранить" name="init">
 </form>

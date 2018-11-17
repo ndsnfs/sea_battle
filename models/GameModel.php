@@ -103,6 +103,17 @@ class GameModel extends MainModel
 	}
 
 	/**
+	 * стирает данные о игре
+	 */
+	public function reset()
+	{
+		$this->DB->clear('players');
+		$this->DB->clear('fields');
+
+		return true;
+	}
+
+	/**
 	 * проверяет инициализирована игра или нет
 	 * по кол-ву игроков, если их 2 тогда игра инициализирована
 	 */
