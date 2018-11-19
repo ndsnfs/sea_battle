@@ -2,13 +2,32 @@
 
 class GameModel extends MainModel
 {
+	/**
+	 * максимальное кол-во игроков
+	 */
 	private static $_maxCntPlayers = 2;
-	private $_playersCnt = 0;
+
+	private $_FIELD = null;
 
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_playersCnt = count($this->DB->getAll('players'));
+	}
+
+	/**
+	 * возвращает максимальное значение координаты(x или y)
+	 */
+	public function getMaxCoordinat()
+	{
+		return FieldModel::getMaxCoordinat();
+	}
+
+	/**
+	 * возвращает минимальное значение координаты(x или y)
+	 */
+	public function getMinCoordinat()
+	{
+		return FieldModel::getMinCoordinat();
 	}
 
 	/**
@@ -48,7 +67,10 @@ class GameModel extends MainModel
 	}
 
 	/**
-	 * данный метод не знает есть ли что в свойствах users и fields
+	 * Инициализация нового игрока
+	 *
+	 * @param String $playerName Имя игрока
+	 * @param Array $celllsState Состояние поля игрока
 	 */
 	public function initPlayer($playerName, $cellsState)
 	{
@@ -57,11 +79,12 @@ class GameModel extends MainModel
 		$id = md5(time());
 		$this->DB->insert('players', array('id' => $id, 'name' => (string)$playerName));
 		$this->DB->insert('fields', array('player_id' => $id, 'field_state' => $field->getState()));
-		$this->_playersCnt++;
 	}
 
 	/**
 	 * возвращает игроков
+	 * 
+	 * @return Array Массив игроков
 	 */
 	public function getPlayers()
 	{
@@ -77,15 +100,28 @@ class GameModel extends MainModel
 	}
 
 	/**
-	 * возвращает играка
+	 * возвращает игрока
+	 * 
+	 * @param int $playerId ИД игрока
+	 *
+	 * @return object|null Объект игрок или null
 	 */
 	public function getPlayer($playerId)
 	{
-		return $this->DB->getOne('players', array('id' => $playerId));
+		$player = $this->DB->getOne('players', array('id' => $playerId));
+		
+		if($player)
+		{
+			return new PlayerModel($player['id'], $player['name']);
+		}
+
+		return null;
 	}
 
 	/**
-	 * 
+	 * Возвращает массив в котором все поля всех игроков
+	 *
+	 * @return Array Массив из полей
 	 */
 	public function getFields()
 	{
@@ -93,7 +129,9 @@ class GameModel extends MainModel
 	}
 
 	/**
-	 * назначает рандомному игроку ход
+	 * Возвращает случайного игрока
+	 * 
+	 * @return object Объект игрок
 	 */
 	public function getFirstStep()
 	{
@@ -103,7 +141,9 @@ class GameModel extends MainModel
 	}
 
 	/**
-	 * стирает данные о игре
+	 * Стирает данные о игре
+	 * 
+	 * @return bool
 	 */
 	public function reset()
 	{
@@ -114,12 +154,16 @@ class GameModel extends MainModel
 	}
 
 	/**
-	 * проверяет инициализирована игра или нет
+	 * Проверяет инициализирована игра или нет
 	 * по кол-ву игроков, если их 2 тогда игра инициализирована
+	 *
+	 * @return bool
 	 */
 	public function isInit()
 	{
-		if(self::$_maxCntPlayers === $this->_playersCnt)
+		$p = $this->DB->getAll('players');
+
+		if(self::$_maxCntPlayers === count($p))
 		{
 			return true;
 		}

@@ -1,1 +1,0 @@
-<a href="?page=init">Играем?</a>

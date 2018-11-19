@@ -4,7 +4,6 @@ require_once 'commonFuncs.php';
 require_once 'config' . DIRECTORY_SEPARATOR . 'config.php';
 
 define('VIEW_PATH', __DIR__
-							. DIRECTORY_SEPARATOR . 'front'
 							. DIRECTORY_SEPARATOR . 'views'
 							. DIRECTORY_SEPARATOR);
 
@@ -31,14 +30,15 @@ class Strategy extends Base
 		{
 			$player = $game->getFirstStep();
 			$this->render('step', array(
-				'players' => $game->getPlayers(),
-				'player' => $player,
-				'fields' => $game->getFields()
+				'player' => $player, // текущий игрок
+				'fields' => $game->getFields(), // оба поля
+				'minCoordinat' => $game->getMinCoordinat(),
+				'maxCoordinat' => $game->getMaxCoordinat()
 			));
 		}
 
 		$this->render('init', array(
-			'players' => $game->getPlayers()
+			'players' => $game->getPlayers() 
 		));
 	}
 
@@ -57,9 +57,10 @@ class Strategy extends Base
 		}
 
 		$this->render('step', array(
-			'players' => $game->getPlayers(),
-			'player' => new PlayerModel($player['id'], $player['name']),
-			'fields' => $game->getFields()
+			'player' => $player,
+			'fields' => $game->getFields(),
+			'minCoordinat' => $game->getMinCoordinat(),
+			'maxCoordinat' => $game->getMaxCoordinat()
 		));
 	}
 
