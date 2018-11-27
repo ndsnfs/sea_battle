@@ -2,13 +2,59 @@
 
 interface DbDriverInterface
 {
+        /**
+         * Вставляет одну запись в "таблицу"
+         * 
+         * @param string $table
+         * @param array $data
+         */
 	public function insert(string $table, array $data);
+        
+        /**
+         * Вставляет одну и более строк в "таблицу"
+         * 
+         * @param string $table
+         * @param array $data
+         */
 	public function insertBatch(string $table, array $data);
+        
+        /**
+         * Обновляет "таблицу" значениями $data по условию $where
+         * 
+         * @param string $table
+         * @param array $data
+         * @param array $where
+         */
 	public function update(string $table, array $data, array $where);
+        
+        /**
+         * Возващает одну строку по условию
+         * 
+         * @param string $table
+         * @param array $data
+         */
 	public function getOne(string $table, array $data);
+        
+        /**
+         * Возвращает все строки "таблицы"
+         * 
+         * @param string $table
+         */
 	public function getAll(string $table);
+        
+        /**
+         * Возвращает массив строк "таблицы" по условию
+         * 
+         * @param string $table
+         * @param array $data
+         */
 	public function getWhere(string $table, array $data);
         
+        /**
+         * Очищает "таблицу"
+         * 
+         * @param string $table
+         */
 	public function clear(string $table);
         
         /**
