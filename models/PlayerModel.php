@@ -7,11 +7,12 @@ class PlayerModel extends MainModel
 
     /**
      * Имитирует метод load, т.е. принимает и сохраняет свойства
-     * @param int $playerId
-     * @param string $playerName
+     * @param array $data
      */
     public function __construct($data)
     {
+        parent::__construct();
+        
         foreach ($data as $prop => $val)
         {            
             if(property_exists($this, $prop))
@@ -19,13 +20,11 @@ class PlayerModel extends MainModel
                 $this->$prop = $val;
             }
         }
-        
-        $this->playerName = '123';
     }
 
     /**
-     * Возвращает ИД игрока
-     * @return int
+     * Возвращает ИД игрока (строковое значение)(хеш md5)
+     * @return string
      */
     public function getId()
     {
