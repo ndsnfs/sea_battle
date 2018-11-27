@@ -33,8 +33,8 @@
 </style>
 
 <form action="?page=step" method="POST">
-	<?php foreach ($fields as $field): ?>
-		<?php if($player->getId() === $field['player_id']): ?>
+	<?php foreach ($fields as $playerId => $field): ?>
+		<?php if($player->getId() === $playerId): ?>
 		<?php
 
 		$cnt = 0;
@@ -49,9 +49,11 @@
 				<?php endfor ?>
 			</div>
 			<!-- первая строка с названиями столбцов END -->
-			<?php foreach ($field['field_state'] as $row): ?>
+			<?php foreach ($field as $row): ?>
 			<div class="tr">
+                                <!-- Первй столбец -->
 				<div class="td"><?= $cnt ?></div>
+                                <!-- Первй столбец END -->
 				<?php foreach ($row as $k => $cellValue): ?>
 					<?php if($cellValue === 1): ?>
 					<div class="td"></div>
@@ -62,6 +64,7 @@
 					<?php elseif($cellValue === 4): ?>
 					<div class="td bg-checked">x</div>
 					<?php endif ?>
+                                        
 				<?php endforeach; ?>
 				<?php $cnt++; ?>
 			</div>
@@ -82,7 +85,7 @@
 				<?php endfor ?>
 			</div>
 			<!-- первая строка с названиями столбцов END -->
-			<?php foreach ($field['field_state'] as $row): ?>
+			<?php foreach ($field as $row): ?>
 			<!-- TR -->
 			<div class="tr">
 				<div class="td"><?= $cnt ?></div>
@@ -101,7 +104,7 @@
 			</div>
 			<!-- TR END -->
 			<?php endforeach; ?>
-			<input type="hidden" name="enemy_player_id" value="<?= $field['player_id'] ?>">
+			<input type="hidden" name="enemy_player_id" value="<?= $playerId ?>">
 			<?php // (new StateWidget())->draw() ?>
 			<input type="submit" value="огонь!" name="init" class="btn btn-block">
 		</div>

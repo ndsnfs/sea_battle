@@ -2,172 +2,246 @@
 
 class GameModel extends MainModel
 {
-	/**
-	 * максимальное кол-во игроков
-	 */
-	private static $_maxCntPlayers = 2;
+    /**
+     * максимальное кол-во игроков
+     */
+    private static $_maxCntPlayers = 2;
 
-	private $_FIELD = null;
+    public function __construct()
+    {
+        parent::__construct();
+    }
 
-	public function __construct()
-	{
-		parent::__construct();
-	}
+    /**
+     * возвращает максимальное значение координаты(x или y)
+     */
+    public function getMaxCoordinat()
+    {
+        return FieldModel::getMaxCoordinat();
+    }
 
-	/**
-	 * возвращает максимальное значение координаты(x или y)
-	 */
-	public function getMaxCoordinat()
-	{
-		return FieldModel::getMaxCoordinat();
-	}
+    /**
+     * возвращает минимальное значение координаты(x или y)
+     */
+    public function getMinCoordinat()
+    {
+        return FieldModel::getMinCoordinat();
+    }
 
-	/**
-	 * возвращает минимальное значение координаты(x или y)
-	 */
-	public function getMinCoordinat()
-	{
-		return FieldModel::getMinCoordinat();
-	}
+    /**
+     * Ход игрока
+     * 
+     * @param string $currentPlayerId Строковое значеине ИД игрока делающего ход
+     * @param string $enemyPlayerId Строковое значеине ИД соперника
+     * @param string $cell Координаты ячейки по которой стреляют
+     * @return bool true в случае попадания, false в случае промаха
+     */
+    public function step($currentPlayerId, $enemyPlayerId, $cell) // :bool
+    {        
+        $fields = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
 
-	/**
-	 * 
-	 */
-	public function step($currentPlayerId, $enemyPlayerId, $cell) //:bool
-	{
-		$result = false;
-		$fields = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
+        foreach ($fields as $row)
+        {
+            if($row['coordinat'] === $cell and $row['status'] == FieldModel::getShipCell()) // :FIX Не жесткое сравнение типов
+            {
+                $this->DB->replace('fields',
+                    array('player_id', 'coordinat'),
+                    array(
+                        'player_id' => $enemyPlayerId,
+                        'coordinat' => $cell,
+                        'status' => FieldModel::getWoundCell()
+                    )
+                );
+                
+                return true;
+            }
+        }
+            
+        $this->DB->insert('fields',
+            array(
+                'player_id' => $enemyPlayerId,
+                'coordinat' => $cell,
+                'status' => FieldModel::getFailedCell()
+            )
+        );
 
-		foreach ($fields as &$row)
-		{
-			foreach ($row['field_state'] as &$arr)
-			{
-				if(array_key_exists($cell, $arr))
-				{
-					if($arr[$cell] === FieldModel::getEmptyCell())
-					{
-						$arr[$cell] = FieldModel::getFailedCell();
-						$this->DB->update('fields', array('field_state' => $row['field_state']), array('player_id' => $enemyPlayerId));
-					}
-					elseif($arr[$cell] === FieldModel::getShipCell())
-					{
-						$result = true;
-						$arr[$cell] = FieldModel::getWoundCell();
-						$this->DB->update('fields', array('field_state' => $row['field_state']), array('player_id' => $enemyPlayerId));
-					}
-					else
-					{
-						throw new Exception("Error Processing Request");
-					}
-				}
-			}
-		}
+        return false;
+    }
 
-		return $result;
-	}
+    /**
+     * Инициализация нового игрока
+     *
+     * @param string $playerName Имя игрока
+     * @param array $shipsCells Состояние поля игрока
+     */
+    public function initPlayer($playerName, $shipsCells)
+    {
+        $id = md5(time());
+        $this->DB->insert('players', array('id' => $id, 'name' => (string)$playerName));
+        
+        $dataInsertBatch = array();
 
-	/**
-	 * Инициализация нового игрока
-	 *
-	 * @param String $playerName Имя игрока
-	 * @param Array $celllsState Состояние поля игрока
-	 */
-	public function initPlayer($playerName, $cellsState)
-	{
-		$field = new FieldModel();
-		$field->changeState($cellsState);
-		$id = md5(time());
-		$this->DB->insert('players', array('id' => $id, 'name' => (string)$playerName));
-		$this->DB->insert('fields', array('player_id' => $id, 'field_state' => $field->getState()));
-	}
+        foreach($shipsCells as $coordinat => $status)
+        {
+            $dataInsertBatch[] = array('player_id' => $id, 'coordinat' => $coordinat, 'status' => $status);
+        }
 
-	/**
-	 * возвращает игроков
-	 * 
-	 * @return Array Массив игроков
-	 */
-	public function getPlayers()
-	{
-		$arrTmp = array();
-		$players = $this->DB->getAll('players');
+        $this->DB->insertBatch('fields', $dataInsertBatch);
+    }
 
-		foreach ($players as $p)
-		{
-			$arrTmp[] = new PlayerModel($p['id'], $p['name']);
-		}
+    /**
+     * Возвращает игроков
+     * 
+     * @return array Массив игроков
+     */
+    public function getPlayers()
+    {
+        $arrTmp = array();
+        $players = $this->DB->getAll('players');
 
-		return $arrTmp;
-	}
+        foreach ($players as $p)
+        {
+            $arrTmp[] = new PlayerModel(array('playerId' => $p['id'], 'playerName' => $p['name']));
+        }
 
-	/**
-	 * возвращает игрока
-	 * 
-	 * @param int $playerId ИД игрока
-	 *
-	 * @return object|null Объект игрок или null
-	 */
-	public function getPlayer($playerId)
-	{
-		$player = $this->DB->getOne('players', array('id' => $playerId));
-		
-		if($player)
-		{
-			return new PlayerModel($player['id'], $player['name']);
-		}
+        return $arrTmp;
+    }
 
-		return null;
-	}
+    /**
+     * возвращает игрока
+     * 
+     * @param int $playerId ИД игрока
+     * @return object|null Объект игрок или null
+     */
+    public function getPlayer($playerId)
+    {
+        $playerArr = $this->DB->getOne('players', array('id' => $playerId));
 
-	/**
-	 * Возвращает массив в котором все поля всех игроков
-	 *
-	 * @return Array Массив из полей
-	 */
-	public function getFields()
-	{
-		return $this->DB->getAll('fields');
-	}
+        if($playerArr)
+        {
+            $playerObj = new PlayerModel(array('playerId' => $playerArr['id'], 'playerName' => $playerArr['name']));
+            
+            if(!$playerObj->validate())
+            {
+                debug($playerObj->validationErrors());
+            }
+            
+            return $playerObj;
+        }
 
-	/**
-	 * Возвращает случайного игрока
-	 * 
-	 * @return object Объект игрок
-	 */
-	public function getFirstStep()
-	{
-		$players = $this->getPlayers();
-		$randKey = array_rand($players, 1);
-		return $players[$randKey];
-	}
+        return null;
+    }
 
-	/**
-	 * Стирает данные о игре
-	 * 
-	 * @return bool
-	 */
-	public function reset()
-	{
-		$this->DB->clear('players');
-		$this->DB->clear('fields');
+    /**
+     * Возвращает массив в котором все поля всех игроков
+     *
+     * @return array Массив из полей
+     */
+    public function getFields()
+    {
+        $fieldModel = new FieldModel();
+        
+        $allFields = $this->DB->getAll('fields');
+        $playersStates = array();
+        $result = array();
+        
+//        разбираем ячейки игроков на отдельные массивы
+        foreach ($allFields as $row)
+        {
+            $playersStates[$row['player_id']][$row['coordinat']] = $row['status'];
+        }
+        
+//        формируем из этих полей столько матриц сколько игроков
+        foreach ($playersStates as $playerId => $state)
+        {
+//            создаем пустую матрицу
+            $matrix = $fieldModel->createMatrix();
+//            объединяем пустую матрицу и состояния поля игрока в общую картину
+            foreach ($matrix as &$row)
+            {
+//                перебираем строку матрицы
+                foreach ($row as $coordinat => &$value)
+                {
+                    if (array_key_exists($coordinat, $state))
+                    {
+                        $value = (int)$state[$coordinat];
+                    }
+                }
+                
+                unset($value);
+            }
+            
+            unset($row);
+            
+            $result[$playerId] = $matrix;
+        }        
+        
+        return $result;
+    }
 
-		return true;
-	}
+    /**
+     * Возвращает случайного игрока для первого хода
+     * 
+     * @return object Объект игрок
+     */
+    public function getFirstStep()
+    {
+        $players = $this->getPlayers();
+        $randKey = array_rand($players, 1);
+        return $players[$randKey];
+    }
 
-	/**
-	 * Проверяет инициализирована игра или нет
-	 * по кол-ву игроков, если их 2 тогда игра инициализирована
-	 *
-	 * @return bool
-	 */
-	public function isInit()
-	{
-		$p = $this->DB->getAll('players');
+    /**
+     * Стирает данные о игре
+     * 
+     * @return bool
+     */
+    public function reset()
+    {
+        $this->DB->clear('players');
+        $this->DB->clear('fields');
 
-		if(self::$_maxCntPlayers === count($p))
-		{
-			return true;
-		}
+        return true;
+    }
 
-		return false;
-	}
+    /**
+     * Проверяет инициализирована игра или нет
+     * по кол-ву игроков, если их 2 тогда игра инициализирована
+     *
+     * @return bool
+     */
+    public function isInit()
+    {
+        $p = $this->DB->getAll('players');
+
+        if(self::$_maxCntPlayers === count($p))
+        {
+            return true;
+        }
+
+        return false;
+    }
+    
+    /**
+     * Проверяет окончена ли игра
+     * @param string $enemyPlayerId Строковое ИД соперника
+     * @return boolean
+     */
+    public function isEnd($enemyPlayerId)
+    {
+        $field = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
+        
+//        :FIX тут добавить вставку в БД postgres
+        
+        foreach ($field as $row)
+        {
+//            если есть хотя бы одна ячейка с неподбитым кораблем значит игра не закончена
+            if($row['status'] == FieldModel::getShipCell()) // :FIX не жесткое сравнение
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
 }

@@ -17,14 +17,14 @@
 	</div>
 	<div class="tr">
 		<div class="td"></div>
-		<?php foreach (range(0, 9) as $x): ?>
+		<?php foreach (range($minCoordinat, $maxCoordinat) as $x): ?>
 		<div class="td"><?= $x ?></div>
 		<?php endforeach; ?>
 	</div>
-	<?php foreach (range(0, 9) as $y): ?>
+	<?php foreach (range($minCoordinat, $maxCoordinat) as $y): ?>
 	<div class="tr">
 		<div class="td"><?= $y ?></div>
-		<?php foreach (range(0, 9) as $x): ?>
+		<?php foreach (range($minCoordinat, $maxCoordinat) as $x): ?>
 		<div class="td"><input type="checkbox" name="cell_status[<?= $x ?>:<?= $y ?>]" value="2"></div>
 		<?php endforeach; ?>
 	</div>
