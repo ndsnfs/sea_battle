@@ -1,8 +1,7 @@
 <?php
 
 class MainModel
-{
-            
+{ 
     const INT_RULE_NAME = 'int';
     
     const REQUIRED_RULE_NAME = 'required';
@@ -10,17 +9,21 @@ class MainModel
     const ALPHA_RULE_NAME = 'alpha';
     
     const STRING_RULE_NAME = 'string';
+
+    const PREG_MATH_RULE_NAME = 'pregMath';
+    
+    const CUSTOM_RULE_NAME = 'custom_';
     
     /**
-     * @var array | null 
+     * @var array
      */
-    private $_errors = null;
+    private $_errors;
     
     /**
      *Хранит подключение к DB
-     * @var object | null 
+     * @var object
      */
-    public $DB = null;
+    public $DB;
 
     /**
      * Сохраняет подключение
@@ -70,6 +73,9 @@ class MainModel
             self::REQUIRED_RULE_NAME => 'Не может быть пустым',
             self::ALPHA_RULE_NAME => 'Поле не должно содержать ничего кроме a-zA-Z',
             self::STRING_RULE_NAME => 'Поле не является строкой',
+            self::PREG_MATH_RULE_NAME => 'Не соответствует шаблону',
+            self::CUSTOM_RULE_NAME => 'Не прошла Custom функция',
+
         );
     }
     
@@ -90,7 +96,7 @@ class MainModel
     }
     
     /**
-     * Возвращает массив ошибок
+     * Заполняет массив ошибками если они есть
      * 
      * @param int | string | bool $value
      * @param array $rules Массив правил со свойствами
@@ -106,9 +112,21 @@ class MainModel
             
             foreach ($r as $rule)
             {
-                if($this->checkError($this->$prop, $rule) !== true)
+                $params = array();
+//                пробуем распарсить правила на наличие функции в правиле
+//                например pregMath[PATTERN]
+                $c_rule = static::parseRule($rule);
+                
+//                и если она есть, разделяем ее имя и параметры
+                if(is_array($c_rule))
                 {
-                    $errors[$prop] = $this->getMessage($rule);
+                    $rule = $c_rule[0]; // строка
+                    $params = $c_rule[1]; // массив
+                }
+                
+                if($this->checkError($this->$prop, $rule, $params) !== true)
+                {
+                    $errors[$prop][] = $this->getMessage($rule);
                 }
             }
         }
@@ -124,20 +142,33 @@ class MainModel
     }
     
     /**
+     * Проверяет конкретное значение на конкретное правило
+     * 
      * @param string | int $value
      * @param string $rule
      * @return bool
+     * @throws Exception Может бросить да да
      */
-    private function checkError($value, $rule)
+    private function checkError($value, $rule, $params = array())
     {
+//        if(is_array($value))
+//        {
+//            foreach ($value as $v)
+//            {
+//                $this->checkError($v, $rule, $params);
+//            }
+//        }
+        
 //        если правило по которому будем проверять не найдено
-//        тогда ничего не делаем
+//        тогда бросаем исключение
         switch($rule)
         {
             case self::INT_RULE_NAME: return self::isInt($value);
             case self::REQUIRED_RULE_NAME: return self::isRequired($value);
             case self::ALPHA_RULE_NAME: return self::isAlpha($value);
             case self::STRING_RULE_NAME: return self::isString($value);
+            case self::PREG_MATH_RULE_NAME: return self::hasMath($value, $params);
+            case self::CUSTOM_RULE_NAME: return $this->runCustom($value, $params);
             default: throw new Exception('Invalid argument');
         }
     }
@@ -148,7 +179,7 @@ class MainModel
     /**
      * Проверяет параметр на пустоту
      * 
-     * @param type $value
+     * @param mixed $var
      * @return boolean
      */
     private static function isRequired($var)
@@ -210,5 +241,77 @@ class MainModel
         return false;
     }
     
+    /**
+     * Проверяет находится ли вхождение в строке
+     * @param string $value
+     * @param array $params
+     * @return boolean
+     * @throws Exception Может бросить да да
+     */
+    private static function hasMath($value, $params)
+    {
+        if(!array_key_exists('pattern', $params))
+        {
+            throw new Exception('Invalid argument');
+        }
+        
+        if(preg_match("/" . $params['pattern'] . "/", $value))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Запускает custom метод объекта наследника
+     */
+    protected function runCustom($value, $params)
+    {
+        if(!array_key_exists('func', $params))
+        {
+            throw new Exception('Invalid argument');
+        }
+        
+        if(method_exists($this, $params['func']))
+        {
+            return $this->{$params['func']}($value);
+        }
+        
+        return false;
+    }
+    
     /*-- Методы проверок END --*/
+    
+    
+    
+    /*-- Вспомогательные функции --*/
+    
+    /**
+     * @param string $rule
+     * @return array | string
+     */
+    private static function parseRule($rule)
+    {
+        if(preg_match("/^(" . self::PREG_MATH_RULE_NAME . ")\[(.*)\]$/", $rule, $arr))
+        {
+            $value = $arr[1];
+            $pattern = $arr[2];
+            
+            return array($value, array('pattern' => $pattern)); // :FIX - нарушение принципа
+        }
+        elseif(preg_match("/^(" . self::CUSTOM_RULE_NAME . ")(.*)$/", $rule, $arr))
+        {
+            $value = $arr[1];
+            $func = $arr[2];   
+            
+            return array($value, array('func' => $func)); // :FIX - нарушение принципа
+        }
+        else
+        {
+            return $rule;
+        }
+    }
+    
+    /*-- Вспомогательные функции END --*/
 }

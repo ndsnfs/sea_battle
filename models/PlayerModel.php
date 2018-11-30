@@ -2,7 +2,14 @@
 
 class PlayerModel extends MainModel
 {
+    /**
+     * @var string 
+     */
     public $playerId;
+    
+    /**
+     * @var string 
+     */
     public $playerName;
 
     /**
@@ -20,6 +27,19 @@ class PlayerModel extends MainModel
                 $this->$prop = $val;
             }
         }
+    }
+    
+    /**
+     * Возвращает массив правил по которым проверяются свойства
+     * 
+     * @return array
+     */
+    public static function rules()
+    {
+        return array(
+            'playerId' => 'required|string',
+            'playerName' => 'required|alpha|pregMath[^gamer_]',
+        );
     }
 
     /**
@@ -39,18 +59,5 @@ class PlayerModel extends MainModel
     public function getName()
     {
         return $this->playerName;
-    }
-    
-    /**
-     * Возвращает массив правил по которым проверяются свойства
-     * 
-     * @return array
-     */
-    public static function rules()
-    {
-        return array(
-            'playerId' => 'required|string',
-            'playerName' => 'required|alpha',
-        );
     }
 }

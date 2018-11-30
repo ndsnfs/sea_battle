@@ -9,6 +9,14 @@ define('VIEW_PATH', __DIR__
 
 define('ROOT_DIR', __DIR__);
 
+//$c1 = new Deck(array('coordinat' => '1:1', 'state' => '2'));
+////$c2 = new Deck(array('name' => '9:1', 'state' => '2'));
+//$c2 = $c1->addOffset('0:-1');
+//
+//echo '<pre>';
+//var_dump($c2);
+//exit;
+
 class Strategy extends Base
 {
     /**

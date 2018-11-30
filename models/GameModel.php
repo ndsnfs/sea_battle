@@ -2,10 +2,20 @@
 
 class GameModel extends MainModel
 {
+    /*-- Правила игры --*/
+
+    /**
+     * Виды кораблей которые могут быть в игре - "кол-во палуб" => "кол-во кораблей"
+     * @var array
+     */
+    private static $_shipCntRule = array(1 => 4, 2 => 3, 3 => 2, 4 => 1);
+    
     /**
      * максимальное кол-во игроков
      */
     private static $_maxCntPlayers = 2;
+
+    /*-- Правила игры END --*/
 
     public function __construct()
     {
@@ -13,7 +23,7 @@ class GameModel extends MainModel
     }
 
     /**
-     * возвращает максимальное значение координаты(x или y)
+     * Возвращает максимальное значение координаты(x или y)
      */
     public function getMaxCoordinat()
     {
@@ -76,8 +86,28 @@ class GameModel extends MainModel
      */
     public function initPlayer($playerName, $shipsCells)
     {
+//        пробуем создать игрока
         $id = md5(time());
-        $this->DB->insert('players', array('id' => $id, 'name' => (string)$playerName));
+        $playerModel = new PlayerModel(array('playerId' => (string)$id, 'playerName' => (string)$playerName));
+        
+        if(!$playerModel->validate())
+        {
+            
+        }
+
+//        Пробуем создать его поле
+        $fieldModel = new FieldModel();
+        $fieldModel->setField($shipsCells);
+        $fieldModel->setShipsCnt(self::$_shipCntRule);
+        
+        if(!$fieldModel->validate())
+        {
+            
+        }
+        
+        $this->DB->insert('players', array('id' => (string)$id, 'name' => (string)$playerName)); // :FIX Если валидно
+        
+//        Пробуем создать поле
         
         $dataInsertBatch = array();
 
@@ -85,7 +115,7 @@ class GameModel extends MainModel
         {
             $dataInsertBatch[] = array('player_id' => $id, 'coordinat' => $coordinat, 'status' => $status);
         }
-
+// :FIX модель Game добавляет в хранилище в обход Field
         $this->DB->insertBatch('fields', $dataInsertBatch);
     }
 
@@ -120,11 +150,6 @@ class GameModel extends MainModel
         if($playerArr)
         {
             $playerObj = new PlayerModel(array('playerId' => $playerArr['id'], 'playerName' => $playerArr['name']));
-            
-            if(!$playerObj->validate())
-            {
-                debug($playerObj->validationErrors());
-            }
             
             return $playerObj;
         }
