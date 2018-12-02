@@ -38,7 +38,7 @@ class PlayerModel extends MainModel
     {
         return array(
             'playerId' => 'required|string',
-            'playerName' => 'required|alpha|pregMath[^gamer_]',
+            'playerName' => 'required|int|alpha|pregMath[^gamer_]',
         );
     }
 

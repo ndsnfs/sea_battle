@@ -92,23 +92,26 @@ class GameModel extends MainModel
         
         if(!$playerModel->validate())
         {
-            
+            debug($playerModel->validationErrors());
         }
 
 //        Пробуем создать его поле
-        $fieldModel = new FieldModel();
-        $fieldModel->setField($shipsCells);
+        $fieldModel = new FieldModel(array('fieldState' => $shipsCells));
         $fieldModel->setShipsCnt(self::$_shipCntRule);
+        $fieldModel->createField();
         
         if(!$fieldModel->validate())
         {
-            
+            debug($fieldModel->validationErrors());
+        }
+        else
+        {
+            $fieldModel->createField();
         }
         
         $this->DB->insert('players', array('id' => (string)$id, 'name' => (string)$playerName)); // :FIX Если валидно
         
 //        Пробуем создать поле
-        
         $dataInsertBatch = array();
 
         foreach($shipsCells as $coordinat => $status)

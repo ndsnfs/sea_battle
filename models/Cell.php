@@ -1,6 +1,6 @@
 <?php
 
-class Deck extends MainModel
+class Cell extends MainModel
 {
     /**
      * Хранит в себе строку вида 1:2
@@ -13,6 +13,34 @@ class Deck extends MainModel
      * @var int 
      */
     public $state;
+    
+    /**
+     * Состояния ячеек
+     */
+    const EMPTY_CELL = 1;
+    const SHIP_CELL = 2;
+    const FAILED_CELL = 3;
+    const WOUND_CELL = 4;
+    
+    public static function getEmptyCell()
+    {
+        return self::EMPTY_CELL;
+    }
+    
+    public static function getShipCell()
+    {
+        return self::SHIP_CELL;
+    }
+    
+    public static function getFAiledCell()
+    {
+        return self::FAILED_CELL;
+    }
+    
+    public static function getWoundCell()
+    {
+        return self::WOUND_CELL;
+    }
     
     /**
      * Имитирует метод load, т.е. принимает и сохраняет свойства
@@ -39,14 +67,15 @@ class Deck extends MainModel
     {
         return array(
             'coordinat' => 'required|pregMath[^\d:\d]',
-            'state' => 'required|int',
+            'state' => 'required|int'
         );
     }
 
     /**
      * Разбивает координату на массив, например 6:6 на array(6, 6)
+     * @param string $coordinat
      */
-    public function coordinatAsArray($coordinat) // :array(int, int)
+    private function _coordinatAsArray(string $coordinat)
     {
         $tmp = explode(':', $coordinat);
         $tmp = array_map(function($v) {
@@ -58,14 +87,14 @@ class Deck extends MainModel
         throw new Exception('invalid coordinat');
     }
     
-    
     /**
-     * добавляет ячейке сдвиг по определенному правилу, допустим (2:5)+(0:-1) = 2:4
+     * Добавляет ячейке сдвиг по определенному правилу, допустим (2:5)+(0:-1) = 2:4
+     * @return object
      */
     public function addOffset($rule)
     {
-        $c1 = $this->coordinatAsArray($this->coordinat); // к этой ячейке приюавляем $c2
-        $c2 = $this->coordinatAsArray($rule); // :FIX - rule не валидируется
+        $c1 = $this->_coordinatAsArray($this->coordinat); // к этой ячейке приюавляем $c2
+        $c2 = $this->_coordinatAsArray($rule); // :FIX - rule не валидируется
 
         $v1 = $c1[0] + $c2[0];
         $v2 = $c1[1] + $c2[1];

@@ -17,7 +17,9 @@ class MainModel
     /**
      * @var array
      */
-    private $_errors;
+    public $errors;
+    
+    public $customErrors = array();
     
     /**
      *Хранит подключение к DB
@@ -39,7 +41,7 @@ class MainModel
      */
     public function validationErrors()
     {
-        return $this->_errors;
+        return $this->errors;
     }
     
     /**
@@ -126,7 +128,19 @@ class MainModel
                 
                 if($this->checkError($this->$prop, $rule, $params) !== true)
                 {
-                    $errors[$prop][] = $this->getMessage($rule);
+                    if(isset($params['func'])
+                            && array_key_exists($params['func'], $this->customErrors)
+                            && is_array($this->customErrors[$params['func']]))
+                    {
+                        foreach ($this->customErrors[$params['func']] as $errMsg)
+                        {
+                            $errors[$prop][] = $errMsg;
+                        }
+                    }
+                    else
+                    {
+                        $errors[$prop][] = $this->getMessage($rule);
+                    }
                 }
             }
         }
@@ -134,7 +148,7 @@ class MainModel
         if(count($errors) > 0)
         {
 //            сохраняем все ошибки в одном месте
-            $this->_errors = $errors;
+            $this->errors = $errors;
             return true;
         }
         
@@ -201,7 +215,7 @@ class MainModel
      */
     private static function isInt($var)
     {
-        if(preg_match('/^[0-9]+$/', $var))
+        if(preg_match('/^[0-9]+$/', (string)$var))
         {
             return true;
         }
