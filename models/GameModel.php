@@ -100,9 +100,6 @@ class GameModel extends MainModel
         $fieldModel->setShipsCnt(self::$_shipCntRule);
         $fieldModel->createField();
         
-        debug($fieldModel->FIELD);
-        exit;
-        
         if(!$fieldModel->validate())
         {
             debug($fieldModel->validationErrors());
