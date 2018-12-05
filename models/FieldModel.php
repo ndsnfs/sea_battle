@@ -92,6 +92,7 @@ class FieldModel extends MainModel
     public function createField()
     {
         $breackPoint = $this->getMaxCoordinat();
+//        на старте x и y одинаковые
         $x = $y = $this->getMinCoordinat();
         
         while(true)

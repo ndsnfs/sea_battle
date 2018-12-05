@@ -6,9 +6,8 @@ class DB implements DbDriverInterface
 
     public function __construct()
     {
-        global $config;
-        $driverDb = $config['db']['driver'];
-        $this->_driver = call_user_func($driverDb . '::getInstance');
+//        :FIX организовать нормальное подключение конфига
+        $this->_driver = call_user_func('PgsqlDriver::getInstance');
     }
 
     public function insert(string $table, array $data)

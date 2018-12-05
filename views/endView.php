@@ -1,5 +1,10 @@
-<?php
-
-echo 'Победил ' . $playerName . '<br>';
-echo 'ID ' . $playerId . '<br>';
-echo '<a href="?page=index">заново?</a>';
+<html>
+    <head>
+        <title>title</title>
+    </head>
+    <body>
+        Победил <?= $playerName ?><br>
+        ID <?= $playerId ?><br>
+        <a href="?page=index">заново?</a>
+    </body>
+</html>

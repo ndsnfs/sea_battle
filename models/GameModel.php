@@ -55,7 +55,7 @@ class GameModel extends MainModel
             if($row['coordinat'] === $cell and $row['status'] == FieldModel::getShipCell()) // :FIX Не жесткое сравнение типов
             {
                 $this->DB->replace('fields',
-                    array('player_id', 'coordinat'),
+                    array('player_id' => $enemyPlayerId, 'coordinat' => $cell),
                     array(
                         'player_id' => $enemyPlayerId,
                         'coordinat' => $cell,
@@ -100,13 +100,12 @@ class GameModel extends MainModel
         $fieldModel->setShipsCnt(self::$_shipCntRule);
         $fieldModel->createField();
         
+        debug($fieldModel->FIELD);
+        exit;
+        
         if(!$fieldModel->validate())
         {
             debug($fieldModel->validationErrors());
-        }
-        else
-        {
-            $fieldModel->createField();
         }
         
         $this->DB->insert('players', array('id' => (string)$id, 'name' => (string)$playerName)); // :FIX Если валидно
@@ -118,8 +117,12 @@ class GameModel extends MainModel
         {
             $dataInsertBatch[] = array('player_id' => $id, 'coordinat' => $coordinat, 'status' => $status);
         }
+        
 // :FIX модель Game добавляет в хранилище в обход Field
-        $this->DB->insertBatch('fields', $dataInsertBatch);
+        if(!$this->DB->insertBatch('fields', $dataInsertBatch))
+        {
+            echo 'Fatal!!!';
+        }
     }
 
     /**
@@ -226,10 +229,12 @@ class GameModel extends MainModel
      */
     public function reset()
     {
-        $this->DB->clear('players');
-        $this->DB->clear('fields');
-
-        return true;
+        if($this->DB->clear('fields') && $this->DB->clear('players'))
+        {
+            return true;
+        }
+        
+        return false;
     }
 
     /**
