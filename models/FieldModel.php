@@ -1,21 +1,27 @@
 <?php
 
 class FieldModel extends MainModel
-{    
-    public $fieldState;
-    
+{
     /*-- ERRORS --*/
    
+    public $_selfErrors = [];
+    
     /**
      * Смежные координаты
      * @var array 
      */
-    public $ajacentCoordinats = array();
+    public $ajacentCoordinats = [];
     
     /*-- ERRORS END --*/
     
+    
+    
+    /*-- STATE --*/
+    
+    public $fieldState;
+    
     /**
-     * Хранит в себе созданное плоское поле
+     * Хранит в себе созданное плоское поле - из объектов Cell
      * @var array
      */
     public $FIELD;
@@ -36,9 +42,19 @@ class FieldModel extends MainModel
      */
     private $_SHIPS = array();
     
+    /*-- STATE END --*/
+    
     
     
     /*-- RULES --*/
+    
+    private $_minCoordinat = 0;
+    
+    /**
+     * Максимальный размер поля
+     * @var int 
+     */
+    public $maxCoordinat;
     
     /**
      * Содержит кол-во кораблей с кол-вом палуб
@@ -65,75 +81,24 @@ class FieldModel extends MainModel
     public static function rules()
     {
         return array(
-            'fieldState' => 'required|custom_mainValidator'
+            'fieldState' => 'required|custom_mainValidator',
+            'maxCoordinat' => 'required|int'
         );
     }
     
     /*-- RULES END --*/
     
-    /**
-     * Имитирует метод load, т.е. принимает и сохраняет свойства
-     * @param array $data
-     */
-    public function __construct(array $data = array())
-    {
-        foreach ($data as $prop => $val)
-        {            
-            if(property_exists($this, $prop))
-            {
-                $this->$prop = $val;
-            }
-        }
-    }
+    
+    
+    /*-- SETTERS --*/
     
     /**
-     * Создает плоский массив
+     * Задает  максимальный размер поля
+     * @param int $var
      */
-    public function createField()
+    public function setMaxCoordinat($var)
     {
-        $breackPoint = $this->getMaxCoordinat();
-//        на старте x и y одинаковые
-        $x = $y = $this->getMinCoordinat();
-        
-        while(true)
-        {
-            $coordinat = $x . ':' . $y;
-            $state = Cell::getEmptyCell();
-            
-            if(array_key_exists($coordinat, $this->fieldState))
-            {
-                $state = $this->fieldState[$coordinat];
-            }
-            
-            $cell = new Cell(array('coordinat' => $coordinat, 'state' => $state));
-            
-            if(!$cell->validate())
-            {
-                continue;
-            }
-            
-            $this->FIELD[] = $cell;
-            
-            $x++;
-            
-            if($x > $breackPoint)
-            {
-                $x = $this->getMinCoordinat();
-                $y++;
-            }
-//            если состояние координаты  - корабль, тогда формируем времменные хранилища
-            if((int)$state == Cell::getShipCell())
-            {
-                $this->SHIPS_COORDINAT[] = $coordinat;
-                $this->_TEMP[] = $cell;
-            }
-            
-//            если по $y превышено макс число - поле создано
-            if($y > $breackPoint)
-            {
-                break;
-            }
-        }
+        $this->maxCoordinat = $var;
     }
     
     /**
@@ -144,6 +109,116 @@ class FieldModel extends MainModel
     {
         $this->shipsCnt = $shipsCnt;
     }
+    
+    /**
+     * Создает плоский массив. Вместо метода load
+     * @param array $fieldState Массив, где ключами являются координаты,
+     * а значения состояния этих координат
+     */
+    public function createField(array $fieldState = array())
+    {
+//     Пздц как не нравится, но пока так   
+        $this->fieldState = $fieldState;
+        
+//        на старте x и y одинаковые
+        $x = $y = $this->_minCoordinat;
+        
+        while(true)
+        {
+            $coordinat = $x . ':' . $y;
+            $state = Cell::getEmptyCell();
+            
+            if(array_key_exists($coordinat, $fieldState))
+            {
+                $state = $fieldState[$coordinat];
+            }
+            
+            $cell = new Cell(array('coordinat' => $coordinat, 'state' => $state));
+            
+            if(!$cell->validate())
+            {
+//                т.к. поле должно быть создано для показа ошибок пользователю
+//                создаем пустую ячейку
+                $cell = new Cell(array('coordinat' => $coordinat, 'state' => Cell::getEmptyCell()));
+                
+            }
+            
+            $this->FIELD[] = $cell;
+            
+            $x++;
+            
+            if($x > $this->maxCoordinat)
+            {
+                $x = $this->_minCoordinat;
+                $y++;
+            }
+//            если состояние координаты  - корабль, тогда формируем времменные хранилища
+            if((int)$state == Cell::getShipCell())
+            {
+                $this->SHIPS_COORDINAT[] = $coordinat;
+                $this->_TEMP[] = $cell;
+            }
+            
+//            если по $y превышено макс число - поле создано
+            if($y > $this->maxCoordinat)
+            {
+                break;
+            }
+        }
+    }
+    
+    /*-- SETTERS END --*/
+    
+    
+    
+    /*-- GETTERS --*/
+    
+    /**
+     * пустая ячейка
+     */
+    public static function getEmptyCell()
+    {
+        return Cell::getEmptyCell();
+    }
+
+    /**
+     * корабль ячейка
+     */
+    public static function getShipCell()
+    {
+        return Cell::getShipCell();
+    }
+
+    /**
+     * промах ячейка
+     */
+    public static function getFailedCell()
+    {
+        return Cell::getFailedCell();
+    }
+
+    /**
+     * подбитая ячейка
+     */
+    public static function getWoundCell()
+    {
+        return Cell::getWoundCell();
+    }
+    
+    /**
+     * Массив смежных координат(строк)
+     * @return array
+     */
+    public function getAjacentCoordinats()
+    {
+        return array('ajacentCoordinats' => $this->ajacentCoordinats);
+    }
+    
+    /*-- GETTERS END --*/
+    
+    
+    
+    /*-- VALIDATION --*/
     
     /**
      * Кастомный метод валидации который запускает проверку
@@ -169,9 +244,9 @@ class FieldModel extends MainModel
         $this->_checkStep1(); // :FIX naming
         $this->_checkStep2(); // :FIX naming
         
-        if(count($this->selfErrors) > 0)
+        if(count($this->_selfErrors) > 0)
         {
-            $this->customErrors['mainValidator'] = $this->selfErrors;
+            $this->customErrors['mainValidator'] = $this->_selfErrors;
             return false;
         }
         
@@ -188,7 +263,7 @@ class FieldModel extends MainModel
         {
             if($shipsCnt !== 0)
             {
-                $this->selfErrors[] = 'Не хватает ' . $shipsCnt . ' корабля с ' . $deckCnt . ' палубами';
+                $this->_selfErrors[] = 'Не хватает ' . $shipsCnt . ' корабля с ' . $deckCnt . ' палубами';
             }
         }
     }
@@ -214,16 +289,16 @@ class FieldModel extends MainModel
 
                         if(in_array($checkedCell, $otherShip))
                         {
-                            $this->selfErrors[] = 'Найдена смежная ячейка: ' . $checkedCell->coordinat . ' с ' . $checkedDeck->coordinat;
+                            $this->_selfErrors[] = 'Найдена смежная ячейка: ' . $checkedCell->coordinat . ' с ' . $checkedDeck->coordinat;
                             
                             if(!in_array($checkedCell->coordinat, $this->ajacentCoordinats))
                             {
-                                $ajacentCoordinats[] = $checkedCell->coordinat;
+                                $this->ajacentCoordinats[] = $checkedCell->coordinat;
                             }
                             
                             if(!in_array($checkedDeck->coordinat, $this->ajacentCoordinats))
                             {
-                                $ajacentCoordinats[] = $checkedDeck->coordinat;
+                                $this->ajacentCoordinats[] = $checkedDeck->coordinat;
                             }
                         }
                     }
@@ -247,7 +322,7 @@ class FieldModel extends MainModel
             // Если все корабли такой длины "вычеркнуты" из массива правил
             if($this->shipsCnt[$shipsLength] == 0)
             {
-                $this->selfErrors[] = 'Превышено кол-во ' . $shipsLength . '-х палубных кораблей';
+                $this->_selfErrors[] = 'Превышено кол-во ' . $shipsLength . '-х палубных кораблей';
             }
             else
             {
@@ -257,7 +332,7 @@ class FieldModel extends MainModel
         }
         else
         {
-            $this->selfErrors[] = 'Корабля с ' . $shipsLength . ' палубами быть не может';
+            $this->_selfErrors[] = 'Корабля с ' . $shipsLength . ' палубами быть не может';
         }
 
         // корабль добавляем в любом случае
@@ -390,114 +465,5 @@ class FieldModel extends MainModel
         return $tmp[0] . ':' . $tmp[1];
     }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    const EMPTY_CELL = 1;
-    const SHIP_CELL = 2;
-    const FAILED_CELL = 3;
-    const WOUND_CELL = 4;
-
-    const MIN_COORDINAT = 0;
-    const MAX_COORDINAT = 9;
-    
-
-    /**
-     * возвращает максимальное значение координаты(x или y)
-     */
-    public static function getMaxCoordinat()
-    {
-        return self::MAX_COORDINAT;
-    }
-
-    /**
-     * возвращает минимальное значение координаты(x или y)
-     */
-    public static function getMinCoordinat()
-    {
-        return self::MIN_COORDINAT;
-    }
-
-    /**
-     * пустая ячейка
-     */
-    public static function getEmptyCell()
-    {
-        return self::EMPTY_CELL;
-    }
-
-    /**
-     * корабль ячейка
-     */
-    public static function getShipCell()
-    {
-        return self::SHIP_CELL;
-    }
-
-    /**
-     * промах ячейка
-     */
-    public static function getFailedCell()
-    {
-        return self::FAILED_CELL;
-    }
-
-    /**
-     * подбитая ячейка
-     */
-    public static function getWoundCell()
-    {
-        return self::WOUND_CELL;
-    }
-    
-    /**
-     * Создает матрицу x:y
-     * @return array
-     */
-    public function createMatrix()
-    {
-        $matrix = array();
-        
-        foreach (self::getEnum() as $y)
-        {
-            foreach (self::getEnum() as $x => $yValue)
-            {
-               $matrix[$y][$x . ':' . $y] = self::EMPTY_CELL;
-            }
-        }
-        
-        return $matrix;
-    }
-
-    /**
-     * Просто создает перечисление
-     * @return array
-     */
-    public static function getEnum()
-    {
-        return range(self::MIN_COORDINAT, self::MAX_COORDINAT);
-    }
-
-    public function getState()
-    {
-        return $this->_state;
-    }
+    /*-- VALIDATION END --*/
 }

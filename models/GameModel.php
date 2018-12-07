@@ -2,7 +2,19 @@
 
 class GameModel extends MainModel
 {
+    private $_initField = [];
+    
+    /**
+     * @var array ошибки не относящиеся к валидации
+     */
+    private $_selfErrors = [];
+    
     /*-- Правила игры --*/
+    
+    /**
+     * @var int Максимальный размер поля
+     */
+    private static $_maxCoordinat = 9;
 
     /**
      * Виды кораблей которые могут быть в игре - "кол-во палуб" => "кол-во кораблей"
@@ -11,7 +23,7 @@ class GameModel extends MainModel
     private static $_shipCntRule = array(1 => 4, 2 => 3, 3 => 2, 4 => 1);
     
     /**
-     * максимальное кол-во игроков
+     * Максимальное кол-во игроков
      */
     private static $_maxCntPlayers = 2;
 
@@ -21,21 +33,21 @@ class GameModel extends MainModel
     {
         parent::__construct();
     }
-
+    
     /**
-     * Возвращает максимальное значение координаты(x или y)
+     * Возвращает поле, каким бы оно не было
      */
-    public function getMaxCoordinat()
+    public function getInitField()
     {
-        return FieldModel::getMaxCoordinat();
+        return $this->_initField;
     }
-
+    
     /**
-     * возвращает минимальное значение координаты(x или y)
+     * 
      */
-    public function getMinCoordinat()
+    public function getSelfErrors()
     {
-        return FieldModel::getMinCoordinat();
+        return $this->_selfErrors;
     }
 
     /**
@@ -55,12 +67,15 @@ class GameModel extends MainModel
             if($row['coordinat'] === $cell and $row['status'] == FieldModel::getShipCell()) // :FIX Не жесткое сравнение типов
             {
                 $this->DB->replace('fields',
-                    array('player_id' => $enemyPlayerId, 'coordinat' => $cell),
-                    array(
+                    [
+                        'player_id' => $enemyPlayerId,
+                        'coordinat' => $cell
+                    ],
+                    [
                         'player_id' => $enemyPlayerId,
                         'coordinat' => $cell,
                         'status' => FieldModel::getWoundCell()
-                    )
+                    ]
                 );
                 
                 return true;
@@ -88,38 +103,66 @@ class GameModel extends MainModel
     {
 //        пробуем создать игрока
         $id = md5(time());
-        $playerModel = new PlayerModel(array('playerId' => (string)$id, 'playerName' => (string)$playerName));
+        $player = new PlayerModel(['playerId' => (string)$id, 'playerName' => (string)$playerName]);
         
-        if(!$playerModel->validate())
+        if(!$player->validate())
         {
-            debug($playerModel->validationErrors());
+            $this->_selfErrors = array_merge($this->_selfErrors, $player->validationErrors());
         }
 
 //        Пробуем создать его поле
-        $fieldModel = new FieldModel(array('fieldState' => $shipsCells));
-        $fieldModel->setShipsCnt(self::$_shipCntRule);
-        $fieldModel->createField();
+        $field = new FieldModel();
+        $field->setShipsCnt(self::$_shipCntRule);
+        $field->setMaxCoordinat(self::$_maxCoordinat);
+        $field->createField($shipsCells);
         
-        if(!$fieldModel->validate())
+        if(!$field->validate())
         {
-            debug($fieldModel->validationErrors());
+            $this->_selfErrors = array_merge($this->_selfErrors, $field->validationErrors());
+            $this->_selfErrors = array_merge($this->_selfErrors, $field->getAjacentCoordinats());
         }
         
-        $this->DB->insert('players', array('id' => (string)$id, 'name' => (string)$playerName)); // :FIX Если валидно
+        if(count($this->_selfErrors) > 0)
+        {
+//            сохраняем какое получилось поле
+            $this->_initField = $field->FIELD;
+            return FALSE;
+        }
         
 //        Пробуем создать поле
-        $dataInsertBatch = array();
+        $dataInsertBatch = [];
 
         foreach($shipsCells as $coordinat => $status)
         {
-            $dataInsertBatch[] = array('player_id' => $id, 'coordinat' => $coordinat, 'status' => $status);
+            $dataInsertBatch[] = ['player_id' => $id, 'coordinat' => $coordinat, 'status' => $status];
         }
         
-// :FIX модель Game добавляет в хранилище в обход Field
-        if(!$this->DB->insertBatch('fields', $dataInsertBatch))
+        $this->DB->transBegin();
+        
+        $isInsertedPlayer = $this->DB->insert('players', ['id' => (string)$id, 'name' => (string)$playerName]);
+        $isInsertedField = $this->DB->insertBatch('fields', $dataInsertBatch);
+        
+        if($isInsertedPlayer && $isInsertedField)
         {
-            echo 'Fatal!!!';
+            $this->DB->transCommit();
+            return TRUE;
         }
+        
+        $this->DB->transRollback();
+        return FALSE;
+    }
+    
+    /**
+     * Создает пустое поле
+     * @return void
+     */
+    public function getEmptyField()
+    {
+        $field = new FieldModel();
+        $field->setMaxCoordinat(self::$_maxCoordinat);
+        $field->createField();
+        
+        return $field->FIELD;
     }
 
     /**
@@ -129,12 +172,12 @@ class GameModel extends MainModel
      */
     public function getPlayers()
     {
-        $arrTmp = array();
+        $arrTmp = [];
         $players = $this->DB->getAll('players');
 
         foreach ($players as $p)
         {
-            $arrTmp[] = new PlayerModel(array('playerId' => $p['id'], 'playerName' => $p['name']));
+            $arrTmp[] = new PlayerModel(['playerId' => $p['id'], 'playerName' => $p['name']]);
         }
 
         return $arrTmp;
@@ -165,58 +208,54 @@ class GameModel extends MainModel
      *
      * @return array Массив из полей
      */
-    public function getFields()
-    {
-        $fieldModel = new FieldModel();
+    public function getField($playerId)
+    {        
+        $state = $this->DB->getWhere('fields', ['player_id' => $playerId]);
+        $res = [];
+//        подготавливаем данные для добавления
+        $tmp = [];
         
-        $allFields = $this->DB->getAll('fields');
-        $playersStates = array();
-        $result = array();
-        
-//        разбираем ячейки игроков на отдельные массивы
-        foreach ($allFields as $row)
+        foreach($state as $row)
         {
-            $playersStates[$row['player_id']][$row['coordinat']] = $row['status'];
+            $tmp[$row['coordinat']] = $row['status'];
         }
+
+        $fieldModel = new FieldModel();
+        $fieldModel->setShipsCnt(self::$_shipCntRule);
+        $fieldModel->setMaxCoordinat(self::$_maxCoordinat);
+        $fieldModel->createField($tmp);
         
-//        формируем из этих полей столько матриц сколько игроков
-        foreach ($playersStates as $playerId => $state)
-        {
-//            создаем пустую матрицу
-            $matrix = $fieldModel->createMatrix();
-//            объединяем пустую матрицу и состояния поля игрока в общую картину
-            foreach ($matrix as &$row)
-            {
-//                перебираем строку матрицы
-                foreach ($row as $coordinat => &$value)
-                {
-                    if (array_key_exists($coordinat, $state))
-                    {
-                        $value = (int)$state[$coordinat];
-                    }
-                }
-                
-                unset($value);
-            }
-            
-            unset($row);
-            
-            $result[$playerId] = $matrix;
-        }        
-        
-        return $result;
+        return $fieldModel->FIELD;
     }
 
     /**
-     * Возвращает случайного игрока для первого хода
+     * Возвращает массив из игрока и соперника
      * 
-     * @return object Объект игрок
+     * @return array
      */
     public function getFirstStep()
     {
         $players = $this->getPlayers();
-        $randKey = array_rand($players, 1);
-        return $players[$randKey];
+        $rand = rand(0, (count($players)-1));
+        
+        $counter = 0;
+        $result = ['current' => NULL, 'enemy' => NULL];
+        
+        foreach ($players as $player)
+        {
+            if($rand === $counter)
+            {
+                $result['current'] = $player;
+            }
+            else
+            {
+                $result['enemy'] = $player;
+            }
+            
+            $counter++;
+        }
+        
+        return $result;
     }
 
     /**

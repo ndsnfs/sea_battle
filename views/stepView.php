@@ -2,123 +2,103 @@
 <html>
     <head>
         <title>title</title>
-        <style type="text/css">
-                input {
-                        margin: 0;
-                        padding: 0;
-                }
-                input[type="radio"] {
-                        margin-top: 5px;
-                }
-                .td {
-                        display: inline-block;
-                        margin-bottom: 2px;
-                        box-sizing: border-box;
-                        width: 25px;
-                        height: 25px;
-                        text-align: center;
-                        border: 1px solid gray;
-                        vertical-align: middle;
-                }
-
-                .field {
-                        float: left;
-                        margin-right: 20px;
-                        margin-bottom: 10px;
-                }
-                .bg-checked {
-                        background-color: gray
-                }
-                .bg-danger {
-                        background-color: red;
-                }
-
-        </style>
+        <link rel="stylesheet" href="./static/css/main.css"/>
     </head>
     <body>
-        <h3>Ход делает - <?= $player->getName() ?></h3>
-        <form action="?page=step" method="POST">
-                <?php foreach ($fields as $playerId => $field): ?>
-                        <?php if($player->getId() === $playerId): ?>
-                        <?php
+        <div class="my-container">
+            <div class="my-row mb-2">
+                <div class="my-col my-col-12">
+                    <h3 class="game-header">Ход делает <?= $current->getName() ?></h3>
+                </div>
+            </div>
+            <div class="my-row">
+                <div class="my-col my-col-6">Соперник</div>
+                <div class="my-col my-col-6">Мое поле</div>
+            </div>
+            <div class="my-row">
+                <div class="my-col my-col-6">
+                    <form action="?page=step" method="POST">
+                        <div class="my-form-group">
+                            <?php $maxCoordinat = 9; $counterX = 0; $counterY = 0; ?>
+                            <div class="my-td"></div>
+                            <?php for($i = 0; $i <= $maxCoordinat; $i++): ?>
+                            <div class="my-td"><?= $i ?></div>
+                            <?php endfor ?>
+                            <br>
+                            <?php foreach($enemyPlayerField as $cell): ?>
+                            <?php
 
-                        $cnt = 0;
+                            if($counterX > 9)
+                            {
+                                $counterX = 0;
+                                $counterY++;
+                                echo '<br>';
+                            }
 
-                        ?>
-                        <div class="field">
-                                <!-- первая строка с названиями столбцов -->
-                                <div class="tr">
-                                        <div class="td"></div>
-                                        <?php for ($i = $minCoordinat; $i <= $maxCoordinat; $i++): ?>
-                                        <div class="td"><?= $i ?></div>
-                                        <?php endfor ?>
-                                </div>
-                                <!-- первая строка с названиями столбцов END -->
-                                <?php foreach ($field as $row): ?>
-                                <div class="tr">
-                                        <!-- Первй столбец -->
-                                        <div class="td"><?= $cnt ?></div>
-                                        <!-- Первй столбец END -->
-                                        <?php foreach ($row as $k => $cellValue): ?>
-                                                <?php if($cellValue === 1): ?>
-                                                <div class="td"></div>
-                                                <?php elseif($cellValue === 2): ?>
-                                                <div class="td bg-checked"></div>
-                                                <?php elseif($cellValue === 3): ?>
-                                                <div class="td">.</div>
-                                                <?php elseif($cellValue === 4): ?>
-                                                <div class="td bg-checked">x</div>
-                                                <?php endif ?>
+                            if($counterX == 0)
+                            {
+                                echo '<div class="my-td">' . $counterY . '</div>';
+                            }
 
-                                        <?php endforeach; ?>
-                                        <?php $cnt++; ?>
-                                </div>
-                                <?php endforeach; ?>
+                            ?>
+                            <div class="my-td">
+                                <?php if($cell->state == 4): ?>
+                                <div class="my-td__ship my-td__ship_wound"></div>
+                                <?php elseif($cell->state == 3): ?>
+                                <div class="my-td__ship my-td__ship_fail">.</div>
+                                <?php else: ?>
+                                <input type="radio" name="cell" value="<?= $cell->coordinat ?>">
+                                <?php endif ?>
+                            </div>
+                            <?php $counterX++; ?>
+                            <?php endforeach ?>
+                            <input type="hidden" name="enemy_player_id" value="<?= $enemy->getId() ?>">
+                            <input type="hidden" name="current_player_id" value="<?= $current->getId() ?>">
                         </div>
-                        <?php else: ?>
-                        <?php
-
-                        $cnt = 0;
-
-                        ?>
-                        <div class="field">
-                                <!-- первая строка с названиями столбцов -->
-                                <div class="tr">
-                                        <div class="td"></div>
-                                        <?php for ($i = $minCoordinat; $i <= $maxCoordinat; $i++): ?>
-                                        <div class="td"><?= $i ?></div>
-                                        <?php endfor ?>
-                                </div>
-                                <!-- первая строка с названиями столбцов END -->
-                                <?php foreach ($field as $row): ?>
-                                <!-- TR -->
-                                <div class="tr">
-                                        <div class="td"><?= $cnt ?></div>
-                                        <?php foreach ($row as $k => $cellValue): ?>
-                                                <?php if($cellValue === 1): ?>
-                                                <div class="td"><input type="radio" name="cell" value="<?= $k ?>"></div>
-                                                <?php elseif($cellValue === 2): ?>
-                                                <div class="td"><input type="radio" name="cell" value="<?= $k ?>"></div>
-                                                <?php elseif($cellValue === 3): ?>
-                                                <div class="td">.</div>
-                                                <?php elseif($cellValue === 4): ?>
-                                                <div class="td">x</div>
-                                                <?php endif ?>
-                                        <?php endforeach; ?>
-                                        <?php $cnt++; ?>
-                                </div>
-                                <!-- TR END -->
-                                <?php endforeach; ?>
-                                <input type="hidden" name="enemy_player_id" value="<?= $playerId ?>">
-                                <?php // (new StateWidget())->draw() ?>
-                                <input type="submit" value="огонь!" name="init" class="btn btn-block">
+                        <div class="my-form-group">
+                            <input type="submit" value="огонь" class="my-btn">
                         </div>
+                    </form>
+                </div>
+                <div class="my-col my-col-6">
+                    <?php $counterX = 0; $counterY = 0; ?>
+                        <div class="my-td"></div>
+                    <?php for($i = 0; $i <= $maxCoordinat; $i++): ?>
+                        <div class="my-td"><?= $i ?></div>
+                    <?php endfor ?>
+                    <br>
+                    <?php foreach($currentPlayerField as $cell): ?>
+                    <?php
+
+                    if($counterX > 9)
+                    {
+                        $counterX = 0;
+                        $counterY++;
+                        echo '<br>';
+                    }
+
+                    if($counterX == 0)
+                    {
+                        echo '<div class="my-td">' . $counterY . '</div>';
+                    }
+
+                    ?>
+                    <div class="my-td">
+                        <?php if($cell->state == 4): ?>
+                        <div class="my-td__ship my-td__ship_wound"></div>
+                        <?php elseif($cell->state == 3): ?>
+                        <div class="my-td__ship my-td__ship_fail">.</div>
+                        <?php elseif($cell->state == 2): ?>
+                        <div class="my-td__ship my-td__ship_normal"></div>
                         <?php endif ?>
-                <?php endforeach; ?>
-                <input type="hidden" name="current_player_id" value="<?= $player->getId() ?>">
-        </form>
-        <div style="clear: both;">
-                <a href="?page=reset">exit</a>
+                    </div>
+                    <?php $counterX++; ?>
+                    <?php endforeach ?>
+                </div>
+            </div>
+            <div class="my-row">
+                <a href="?page=reset">сброс</a>
+            </div>
         </div>
     </body>
 </html>

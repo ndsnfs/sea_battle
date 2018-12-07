@@ -32,7 +32,7 @@ class Cell extends MainModel
         return self::SHIP_CELL;
     }
     
-    public static function getFAiledCell()
+    public static function getFailedCell()
     {
         return self::FAILED_CELL;
     }
@@ -98,7 +98,8 @@ class Cell extends MainModel
 
         $v1 = $c1[0] + $c2[0];
         $v2 = $c1[1] + $c2[1];
-
+        
+// :FIX вынести создание объекта за пределы
         return new self(array('coordinat' => $v1 . ':' . $v2, 'state' => $this->state));
     }
 }

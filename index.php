@@ -18,6 +18,26 @@ class Strategy extends Base
     {
         $this->render('index');
     }
+    
+    /**
+     * Создает игрока и поле
+     */
+    public function create()
+    {
+        $game = new GameModel();
+        
+        if(!$game->initPlayer(Input::post('player_name'), Input::post('cell_status')))
+        {
+            $this->render('initError', array(
+                'errors' => $game->getSelfErrors(),
+                'playerName' => Input::post('player_name'),
+                'field' => $game->getInitField(),
+                'players' => $game->getPlayers()
+            ));
+        }
+//        если игрок и поле созданы перенаправляем на страницу инициализации
+        $this->redirect('page=init');
+    }
 
     /**
      * Страница инициализации игроков
@@ -26,27 +46,24 @@ class Strategy extends Base
     {
         $game = new GameModel();
 
-        if(Input::post('player_name') && Input::post('cell_status'))
-        {
-            $game->initPlayer(Input::post('player_name'), Input::post('cell_status'));
-        }
-
         // проверяем инициализирована ли игра
         if($game->isInit())
         {
-            $player = $game->getFirstStep();
-            $this->render('step', array(
-                'player' => $player, // текущий игрок
-                'fields' => $game->getFields(), // оба поля
-                'minCoordinat' => $game->getMinCoordinat(),
-                'maxCoordinat' => $game->getMaxCoordinat()
-            ));
+            $gamers = $game->getFirstStep();
+            $current = $gamers['current'];
+            $enemy = $gamers['enemy'];
+            
+            $this->render('step', [
+                'currentPlayerField' => $game->getField($current->getId()), 
+                'enemyPlayerField' => $game->getField($enemy->getId()),
+                'current' => $current,
+                'enemy' => $enemy,
+            ]);
         }
-
+        
         $this->render('init', array(
-            'players' => $game->getPlayers(),
-            'minCoordinat' => $game->getMinCoordinat(),
-            'maxCoordinat' => $game->getMaxCoordinat()
+            'field' => $game->getEmptyField(),
+            'players' => $game->getPlayers()
         ));
     }
 
@@ -60,26 +77,29 @@ class Strategy extends Base
 //        если step вернет true игрок играет дальше
         if($game->step(Input::post('current_player_id'), Input::post('enemy_player_id'), Input::post('cell')))
         {
-            $player = $game->getPlayer(Input::post('current_player_id'));
+            /* @var Текущий игрок */
+            $current = $game->getPlayer(Input::post('current_player_id'));
+            $enemy = $game->getPlayer(Input::post('enemy_player_id'));
         }
         else
         {
-            $player = $game->getPlayer(Input::post('enemy_player_id'));
+            $current = $game->getPlayer(Input::post('enemy_player_id'));
+            $enemy = $game->getPlayer(Input::post('current_player_id'));
         }
         
 //        если конец игры переводим игрока на победную страницу
         if($game->isEnd(Input::post('enemy_player_id')))
         {
-            $this->redirect('page=end&player_name=' . $player->getName() . '&player_id=' . $player->getId());
+            $this->redirect('page=end&player_name=' . $current->getName() . '&player_id=' . $current->getId());
             exit;
         }
 
-        $this->render('step', array(
-            'player' => $player,
-            'fields' => $game->getFields(),
-            'minCoordinat' => $game->getMinCoordinat(),
-            'maxCoordinat' => $game->getMaxCoordinat()
-        ));
+        $this->render('step', [
+            'currentPlayerField' => $game->getField($current->getId()), 
+            'enemyPlayerField' => $game->getField($enemy->getId()),
+            'current' => $current,
+            'enemy' => $enemy,
+        ]);
     }
     
     /**
@@ -126,6 +146,7 @@ switch (Input::get('page')) {
     case '': $c->index(); break;
     case 'index': $c->index(); break;
     case 'init': $c->init(); break;
+    case 'create': $c->create(); break;
     case 'step': $c->step(); break;
     case 'reset': $c->reset(); break;
     case 'end': $c->end(); break;

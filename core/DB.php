@@ -9,6 +9,30 @@ class DB implements DbDriverInterface
 //        :FIX организовать нормальное подключение конфига
         $this->_driver = call_user_func('PgsqlDriver::getInstance');
     }
+    
+    /**
+     * Запускает транзакцию
+     */
+    public function transBegin()
+    {
+        $this->_driver->transBegin();
+    }
+    
+    /**
+     * Фиксирует транзакцию
+     */
+    public function transCommit()
+    {
+        $this->_driver->transCommit();
+    }
+    
+    /**
+     * Откат изменений
+     */
+    public function transRollback()
+    {
+        $this->_driver->transRollback(); 
+    }
 
     public function insert(string $table, array $data)
     {

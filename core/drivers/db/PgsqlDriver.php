@@ -18,7 +18,32 @@ class PgsqlDriver implements DbDriverInterface
             echo 'Db conn error' . $e->errorInfo(); exit;
         }
     }
+    
     private function __clone() {}
+    
+    /**
+     * Запускает транзакцию
+     */
+    public function transBegin()
+    {
+        $this->_pdo->beginTransaction();
+    }
+    
+    /**
+     * Фиксирует транзакцию
+     */
+    public function transCommit()
+    {
+        $this->_pdo->commit();
+    }
+    
+    /**
+     * Откат изменений
+     */
+    public function transRollback()
+    {
+        $this->_pdo->rollBack(); 
+    }
     
     public static function getInstance()
     {
@@ -103,8 +128,9 @@ class PgsqlDriver implements DbDriverInterface
         $sql = 'INSERT INTO ' . $table . ' (' . $coolStr . ') VALUES ( ' . $plaveholders . ')';
 //        пытаемся подготовить запрос
         $stm = $this->_pdo->prepare($sql);
-                
-        $this->_pdo->beginTransaction();
+        
+//        $this->_pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
+//        $this->_pdo->beginTransaction();
         
 //        вставляем проверенные данные
         foreach ($values as $row)
@@ -114,11 +140,11 @@ class PgsqlDriver implements DbDriverInterface
                 
         if(true) // :FIX проверить на наличие ошибок
         {
-            $this->_pdo->commit();
+//            $this->_pdo->commit();
             return true;  
         }
         
-        $this->_pdo->rollBack();
+//        $this->_pdo->rollBack();
         return false;
     }
 
