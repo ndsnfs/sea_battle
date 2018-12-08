@@ -17,7 +17,7 @@
             </div>
             <div class="my-row">
                 <div class="my-col my-col-6">
-                    <form action="?page=step" method="POST">
+                    <form action="?r=battle/step" method="POST">
                         <div class="my-form-group">
                             <?php $maxCoordinat = 9; $counterX = 0; $counterY = 0; ?>
                             <div class="my-td"></div>
@@ -97,7 +97,7 @@
                 </div>
             </div>
             <div class="my-row">
-                <a href="?page=reset">сброс</a>
+                <a href="?r=battle/reset">сброс</a>
             </div>
         </div>
     </body>

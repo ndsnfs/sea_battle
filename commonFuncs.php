@@ -30,3 +30,25 @@ function debug(Array $a)
 	print_r($a);
 	echo '</pre>';
 }
+
+function html($data, $action = 'echo')
+{
+    echo '<!doctype html>';
+    echo '<html>';
+    echo '<body>';
+    if($action == 'echo')
+    {
+        echo $data;
+    }
+    elseif($action == 'debug')
+    {
+        debug($data);
+    }
+    else
+    {
+        echo 'Параметр не задан';
+    }
+    echo '</body>';
+    echo '</html>';
+    exit;
+}

@@ -5,7 +5,7 @@
     </head>
     <body>
         <div>
-            <a href="?page=init">Играем?</a>
+            <a href="?r=battle/init">Играем?</a>
         </div>
     </body>
 </html>

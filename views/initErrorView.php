@@ -13,7 +13,7 @@
             </div>
             <div class="my-row">
                 <div class="my-col my-col-12">
-                    <form action="?page=create" method="POST">
+                    <form action="?r=battle/create" method="POST">
                         <div class="my-form-group">
                             <label>Имя</label>
                             <br>

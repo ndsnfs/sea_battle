@@ -5,6 +5,6 @@
     <body>
         Победил <?= $playerName ?><br>
         ID <?= $playerId ?><br>
-        <a href="?page=index">заново?</a>
+        <a href="?r=battle">заново?</a>
     </body>
 </html>
