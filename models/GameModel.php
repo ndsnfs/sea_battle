@@ -191,11 +191,11 @@ class GameModel extends MainModel
      */
     public function getPlayer($playerId)
     {
-        $playerArr = $this->DB->getOne('players', array('id' => $playerId));
+        $playerArr = $this->DB->getOne('players', ['id' => $playerId]);
 
         if($playerArr)
         {
-            $playerObj = new PlayerModel(array('playerId' => $playerArr['id'], 'playerName' => $playerArr['name']));
+            $playerObj = new PlayerModel(['playerId' => $playerArr['id'], 'playerName' => $playerArr['name']]);
             
             return $playerObj;
         }
@@ -209,9 +209,8 @@ class GameModel extends MainModel
      * @return array Массив из полей
      */
     public function getField($playerId)
-    {        
+    {
         $state = $this->DB->getWhere('fields', ['player_id' => $playerId]);
-        $res = [];
 //        подготавливаем данные для добавления
         $tmp = [];
         

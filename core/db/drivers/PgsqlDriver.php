@@ -2,10 +2,75 @@
 
 class PgsqlDriver implements DbDriverInterface
 {
+    private $_lastQuery;
+    /**
+     * DB Connection
+     * @var object 
+     */
     private $_pdo;
+    
+    /*-- ERRORS --*/
     public $errorInfo;
     public $errorCode;
+    /*-- ERRORS END --*/
+    
+    /**
+     * Экземпляр PgsqlDriver
+     * @var object
+     */
     private static $_instance;
+    
+    /**
+     * Присоединияемая таблица
+     * @var string 
+     */
+    private $_joinTb;
+    
+    /**
+     * Условие присоединения таблицы
+     * @var string 
+     */
+    private $_joinOn;
+    
+    /**
+     * Вид присоединения
+     * @var string 
+     */
+    private $_joinType;
+    
+    
+    public function lastQuery()
+    {
+        return $this->_lastQuery;
+    }
+    
+    /**
+     * Временно сохраняет, очищает, и возвращает данные связанные с присоединяемой таблицей
+     * @return array
+     */
+    public function getJoin()
+    {
+        $tmpJoinTb = $this->_joinTb;
+        $tmpJoinOn = $this->_joinOn;
+        $tmpJoinType = $this->_joinType;
+        $this->_joinTb = NULL;
+        $this->_joinOn = NULL;
+        $this->_joinType = NULL;
+        
+        return ['table' => $tmpJoinTb, 'on' => $tmpJoinOn, 'type' => $tmpJoinType];
+    }
+    
+    /**
+     * Формирует данные для JOIN
+     * @param string $table
+     * @param string $on
+     */
+    public function join(string $table, string $on, string $type)
+    {
+        $this->_joinTb = $table;
+        $this->_joinOn = $on;
+        $this->_joinType = $type;
+    }
     
     private function __construct() {
         $dsn = 'pgsql:dbname=sea_battle;host=127.0.0.1';
@@ -17,6 +82,8 @@ class PgsqlDriver implements DbDriverInterface
         } catch (PDOException $e) {
             echo 'Db conn error' . $e->errorInfo(); exit;
         }
+        
+        
     }
     
     private function __clone() {}
@@ -210,33 +277,16 @@ class PgsqlDriver implements DbDriverInterface
      * @param string $table
      * @param array $data
      */
-    public function getOne(string $table, array $where)
+    public function getOne(string $table, array $where, array $cols = [])
     {        
-//        :FIX проверить таблицу на существование (information_shema или белый список)
-        $sql = 'SELECT * FROM ' . $table;
+        $qc = new QueryCreator();
+        $qc->setSelect($table, $cols);
+        $qc->setWhere($where);
+        $qc->setLimit(1);
         
-//        :FIX проверить столбцы на наличие в informaton_shema
-        $cols = array_keys($where);
-        $values = [];
+        $stm = $this->_pdo->prepare($qc->create());
         
-        if(count($cols) > 0)
-        {
-            $first = array_shift($cols);
-            $sql .= ' WHERE ' . $first . ' = ?';
-            $values[] = $where[$first];
-        
-            foreach ($cols as $col)
-            {
-                $sql .= ' AND ' . $col . ' = ?';
-                $values[] = $where[$col];
-            }
-        }
-        
-        $sql .= ' LIMIT 1';
-        
-        $stm = $this->_pdo->prepare($sql);
-        
-        if($stm->execute($values))
+        if($stm->execute($qc->getValues()))
         {
             return $stm->fetch(PDO::FETCH_ASSOC);
         }
@@ -249,13 +299,14 @@ class PgsqlDriver implements DbDriverInterface
      * Возвращает все строки "таблицы"
      * 
      * @param string $table
+     * @param array $cols Массив столбцов, кот. нужно выбрать
      */
-    public function getAll(string $table)
+    public function getAll(string $table, $cols = [])
     {
-//        :FIX проверить таблицу на существование (information_shema или белый список)
-        $sql = 'SELECT * FROM ' . $table;
+        $qc = new QueryCreator();
+        $qc->setSelect($table, $cols);
                 
-        if($stm = $this->_pdo->query($sql))
+        if($stm = $this->_pdo->query($qc->create()))
         {
             return $stm->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -268,37 +319,23 @@ class PgsqlDriver implements DbDriverInterface
      * Возвращает массив строк "таблицы" по условию
      * 
      * @param string $table
-     * @param array $data
+     * @param array $where
+     * @param array $cols Необязательный параметр - столбцы которые необх. выбрать
      */
-    public function getWhere(string $table, array $where)
+    public function getWhere(string $table, array $where, array $cols = [])
     {
-//        :FIX проверить таблицу на существование (information_shema или белый список)
-        $sql = 'SELECT * FROM ' . $table;
+        $qc = new QueryCreator();
+        $qc->setSelect($table, $cols);
+        $qc->setJoin($this->getJoin());
+        $qc->setWhere($where);
         
-//        :FIX проверить столбцы на наличие в informaton_shema
-        $cols = array_keys($where);
-        $values = [];
+        $this->_lastQuery = $qc->create();
+        $stm = $this->_pdo->prepare($qc->create());
         
-        if(count($cols) > 0)
-        {
-            $first = array_shift($cols);
-            $sql .= ' WHERE ' . $first . ' = ?';
-            $values[] = $where[$first];
-        
-            foreach ($cols as $col)
-            {
-                $sql .= ' AND ' . $col . ' = ?';
-                $values[] = $where[$col];
-            }
-        }
-        
-        $stm = $this->_pdo->prepare($sql);
-        
-        if($stm->execute($values))
+        if($stm->execute($qc->getValues()))
         {
             return $stm->fetchAll(PDO::FETCH_ASSOC);
         }
-        
 //        :FIX записать ошибки
         return false;
     }

@@ -10,6 +10,16 @@ class DB implements DbDriverInterface
         $this->_driver = call_user_func('PgsqlDriver::getInstance');
     }
     
+    public function join(string $tb, string $on, string $type = 'INNER')
+    {
+        $this->_driver->join($tb, $on, $type);
+    }
+    
+    public function lastQuery()
+    {
+        return $this->_driver->lastQuery();
+    }
+    
     /**
      * Запускает транзакцию
      */
@@ -49,19 +59,19 @@ class DB implements DbDriverInterface
         return $this->_driver->update($table, $data, $where);
     }
 
-    public function getOne(string $table, array $where)
+    public function getOne(string $table, array $where, array $cols = [])
     {
-        return $this->_driver->getOne($table, $where);
+        return $this->_driver->getOne($table, $where, $cols);
     }
 
-    public function getAll(string $table)
+    public function getAll(string $table, array $cols = [])
     {
-        return $this->_driver->getAll($table);
+        return $this->_driver->getAll($table, $cols);
     }
 
-    public function getWhere(string $table, array $where)
+    public function getWhere(string $table, array $where, array $cols = [])
     {
-        return $this->_driver->getWhere($table, $where);
+        return $this->_driver->getWhere($table, $where, $cols);
     }
 
     public function clear(string $table)
