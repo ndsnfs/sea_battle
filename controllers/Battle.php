@@ -17,11 +17,11 @@ class Battle extends Base
     {
         $game = new GameModel();
         
-        if(!$game->initPlayer(Input::post('player_name'), Input::post('cell_status')))
+        if(!$game->initPlayer(App::$serv->input->post('player_name'), App::$serv->input->post('cell_status')))
         {
             $this->render('initError', array(
                 'errors' => $game->getSelfErrors(),
-                'playerName' => Input::post('player_name'),
+                'playerName' => App::$serv->input->post('player_name'),
                 'field' => $game->getInitField(),
                 'players' => $game->getPlayers()
             ));
@@ -34,7 +34,7 @@ class Battle extends Base
      * Страница инициализации игроков
      */
     public function init()
-    {
+    {        
         $game = new GameModel();
 
         // проверяем инициализирована ли игра
@@ -64,22 +64,24 @@ class Battle extends Base
     public function step()
     {
         $game = new GameModel();
+        $currentId = App::$serv->input->post('current_player_id');
+        $enemyId = App::$serv->input->post('enemy_player_id');
 
 //        если step вернет true игрок играет дальше
-        if($game->step(Input::post('current_player_id'), Input::post('enemy_player_id'), Input::post('cell')))
+        if($game->step($currentId, $enemyId, App::$serv->input->post('cell')))
         {
             /* @var Текущий игрок */
-            $current = $game->getPlayer(Input::post('current_player_id'));
-            $enemy = $game->getPlayer(Input::post('enemy_player_id'));
+            $current = $game->getPlayer($currentId);
+            $enemy = $game->getPlayer($enemyId);
         }
         else
         {
-            $current = $game->getPlayer(Input::post('enemy_player_id'));
-            $enemy = $game->getPlayer(Input::post('current_player_id'));
+            $current = $game->getPlayer($enemyId);
+            $enemy = $game->getPlayer($currentId);
         }
         
 //        если конец игры переводим игрока на победную страницу
-        if($game->isEnd(Input::post('enemy_player_id')))
+        if($game->isEnd($enemyId))
         {
             $this->redirect('r=battle/end&player_name=' . $current->getName() . '&player_id=' . $current->getId());
             exit;
@@ -113,8 +115,8 @@ class Battle extends Base
         $game->reset();
         
         $this->render('end', array(
-            'playerId' => Input::get('player_id'),
-            'playerName' => Input::get('player_name')
+            'playerId' => App::$serv->input->get('player_id'),
+            'playerName' => App::$serv->input->get('player_name')
         ));
     }
 

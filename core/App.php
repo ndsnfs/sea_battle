@@ -17,6 +17,20 @@ class App
         $this->_actionName = $this->_router->getAction() ? $this->_router->getAction() : $this->_actionName;
     }
     
+    /**
+     * Загружает указанный сервис
+     * @param string $serviceName
+     */
+    public function load(string $serviceName)
+    {
+        if($this->load($serviceName))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
     public function run()
     {
 //        :FIX Проверка существования файла

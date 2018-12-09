@@ -10,6 +10,7 @@
             <div class="my-row">
                 <div class="my-col my-col-12">
                     <h3 class="game-header">Игрок №<?= count($players) + 1 ?> вводи свои данные</h3>
+                    <?= App::$serv->session->has('gameId') ? App::$serv->session->get('gameId') : '' ?>
                 </div>
             </div>
             <div class="my-row">
