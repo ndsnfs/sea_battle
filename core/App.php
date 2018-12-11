@@ -33,11 +33,29 @@ class App
     
     public function run()
     {
-//        :FIX Проверка существования файла
-        $c = ucfirst($this->_controllerName);
-        $a = $this->_actionName;
-        
-        (new $c)->$a();
+        if(!$this->_router->hasRoute)
+        {
+//            :FIX организовать загрузку из конфига
+            (new NotFound())->index();
+        }
+        else
+        {
+            $file = ucfirst($this->_controllerName);
+            $fileName = 'controllers/' . $file . '.php';
+            
+            if(file_exists($fileName) && method_exists($file, $this->_actionName))
+            {
+                $c = ucfirst($file);
+                $a = $this->_actionName;
+
+                (new $c)->$a();
+            }
+            else
+            {
+//              :FIX организовать загрузку из конфига
+                (new NotFound())->index();
+            }
+        }
     }
 }
 

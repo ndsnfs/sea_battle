@@ -97,7 +97,7 @@
                 </div>
             </div>
             <div class="my-row">
-                <a href="?r=battle/reset">сброс</a>
+                <a href="?r=battle/exit_from">сброс</a>
             </div>
         </div>
     </body>

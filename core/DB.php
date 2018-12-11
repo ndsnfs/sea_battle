@@ -10,14 +10,54 @@ class DB implements DbDriverInterface
         $this->_driver = call_user_func('PgsqlDriver::getInstance');
     }
     
-    public function join(string $tb, string $on, string $type = 'INNER')
+    /**
+     * Проверяет имеются ли в драйвере ошибки
+     * @return bool
+     */
+    public function hasErrors()
     {
-        $this->_driver->join($tb, $on, $type);
+        return $this->_driver->hasErrors();
     }
     
+    /**
+     * Возвращает код ошиби
+     */
+    public function errorCode()
+    {
+        return $this->_driver->errorCode();
+    }
+    
+    /**
+     * Возвращает информацию об ошибке
+     */
+    public function errorInfo()
+    {
+        return $this->_driver->errorInfo();
+    }
+    
+    /**
+     * Возвращает последний sql запрос
+     * @return string
+     */
     public function lastQuery()
     {
         return $this->_driver->lastQuery();
+    }
+    
+    /**
+     * Возвращает ид последней вставки
+     * @param string $coll
+     * @return string
+     */
+    public function lastInsertId(string $col = '')
+    {
+        return $this->_driver->lastInsertId($col);
+    }
+    
+    
+    public function join(string $tb, string $on, string $type = 'INNER')
+    {
+        $this->_driver->join($tb, $on, $type);
     }
     
     /**
@@ -71,7 +111,8 @@ class DB implements DbDriverInterface
 
     public function getWhere(string $table, array $where, array $cols = [])
     {
-        return $this->_driver->getWhere($table, $where, $cols);
+        $res = $this->_driver->getWhere($table, $where, $cols);
+        return $res;
     }
 
     public function clear(string $table)

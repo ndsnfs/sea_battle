@@ -81,7 +81,7 @@ class FieldModel extends MainModel
     public static function rules()
     {
         return array(
-            'fieldState' => 'required|custom_mainValidator',
+            'fieldState' => 'custom_mainValidator',
             'maxCoordinat' => 'required|int'
         );
     }
@@ -112,11 +112,17 @@ class FieldModel extends MainModel
     
     /**
      * Создает плоский массив. Вместо метода load
-     * @param array $fieldState Массив, где ключами являются координаты,
+     * @param mixed  $fieldState Массив, где ключами являются координаты,
      * а значения состояния этих координат
      */
-    public function createField(array $fieldState = array())
+    public function createField($fieldState = [])
     {
+//        :FIX mixed - это плохо
+        if(!is_array($fieldState))
+        {
+            $fieldState = [];
+        }
+        
 //     Пздц как не нравится, но пока так   
         $this->fieldState = $fieldState;
         
@@ -224,10 +230,9 @@ class FieldModel extends MainModel
      * Кастомный метод валидации который запускает проверку
      * связанную с расстановкой кораблей на поле
      * 
-     * @param array $data
      * @return boolean
      */
-    public function mainValidator(array $data)
+    public function mainValidator()
     {        
 //        заполняет массив _SHIPS кораблями
         foreach ($this->_TEMP as $deckObj)

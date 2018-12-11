@@ -2,17 +2,22 @@
 
 class PgsqlDriver implements DbDriverInterface
 {
+    /**
+     * @var PDOStatement | null
+     */
+    private $_stm;
+    
+    /**
+     * Хранит в строковом виде последний запрос
+     * @var string
+     */
     private $_lastQuery;
+    
     /**
      * DB Connection
      * @var object 
      */
     private $_pdo;
-    
-    /*-- ERRORS --*/
-    public $errorInfo;
-    public $errorCode;
-    /*-- ERRORS END --*/
     
     /**
      * Экземпляр PgsqlDriver
@@ -21,55 +26,21 @@ class PgsqlDriver implements DbDriverInterface
     private static $_instance;
     
     /**
-     * Присоединияемая таблица
-     * @var string 
+     * Хранит массив массивов вида [['table' => $tbName, 'on' => $on, 'type' => $type]]
+     * @var array
      */
-    private $_joinTb;
-    
-    /**
-     * Условие присоединения таблицы
-     * @var string 
-     */
-    private $_joinOn;
-    
-    /**
-     * Вид присоединения
-     * @var string 
-     */
-    private $_joinType;
-    
-    
-    public function lastQuery()
-    {
-        return $this->_lastQuery;
-    }
+    private $_join = [];
     
     /**
      * Временно сохраняет, очищает, и возвращает данные связанные с присоединяемой таблицей
      * @return array
      */
-    public function getJoin()
+    private function _getJoin()
     {
-        $tmpJoinTb = $this->_joinTb;
-        $tmpJoinOn = $this->_joinOn;
-        $tmpJoinType = $this->_joinType;
-        $this->_joinTb = NULL;
-        $this->_joinOn = NULL;
-        $this->_joinType = NULL;
+        $tmpJoin = $this->_join;
+        $this->_join = [];
         
-        return ['table' => $tmpJoinTb, 'on' => $tmpJoinOn, 'type' => $tmpJoinType];
-    }
-    
-    /**
-     * Формирует данные для JOIN
-     * @param string $table
-     * @param string $on
-     */
-    public function join(string $table, string $on, string $type)
-    {
-        $this->_joinTb = $table;
-        $this->_joinOn = $on;
-        $this->_joinType = $type;
+        return $tmpJoin;
     }
     
     private function __construct() {
@@ -77,16 +48,113 @@ class PgsqlDriver implements DbDriverInterface
         $username = 'sea_battle';
         $password = 'qwerty';
         
-        try {
+        try
+        {
             $this->_pdo = new PDO($dsn, $username, $password);
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e)
+        {
             echo 'Db conn error' . $e->errorInfo(); exit;
         }
-        
-        
     }
     
     private function __clone() {}
+    
+    public static function getInstance()
+    {
+        if(self::$_instance === null)
+        {
+            self::$_instance = new self;
+        }
+
+        return self::$_instance;
+    }
+        
+    /**
+     * Проверяет имеются ли в драйвере ошибки
+     * @return bool
+     */
+    public function hasErrors()
+    {
+        $pdo = $this->_pdo->errorInfo();
+        $stm = $this->_stm->errorInfo();
+        
+        if($pdo[0] !== '00000' || $stm[0] !== '00000')
+        {
+            return TRUE;
+        }
+        
+        return FALSE;
+    }
+    
+    /**
+     * Возвращает код ошиби
+     */
+    public function errorCode()
+    {
+        if($this->_pdo->errorCode())
+        {
+            return $this->_pdo->errorCode();
+        }
+        elseif($this->_stm->errorCode())
+        {
+            return $this->_stm->errorInfo();
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+    
+    /**
+     * Возвращает информацию об ошибке
+     */
+    public function errorInfo()
+    {
+        if($this->_pdo->errorInfo())
+        {
+            return $this->_pdo->errorInfo();
+        }
+        elseif($this->_stm->errorInfo())
+        {
+            return $this->_stm->errorInfo();
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+    
+    /**
+     * Возвращает последний sql запрос
+     * @return string
+     */
+    public function lastQuery()
+    {
+        return $this->_lastQuery;
+    }
+    
+    /**
+     * Возвращает ид последней вставки
+     * @param string $coll
+     * @return string
+     */
+    public function lastInsertId(string $coll)
+    {
+        return $this->_pdo->lastInsertId($coll);
+    }
+    
+    /**
+     * Формирует данные для JOIN
+     * 
+     * @param string $table Название присоединяемой таблицы
+     * @param string $on Условие присоединения
+     * @param string $type Тип присоединения
+     */
+    public function join(string $table, string $on, string $type)
+    {
+        $this->_join[] = ['table' => $table, 'on' => $on, 'type' => $type];
+    }
     
     /**
      * Запускает транзакцию
@@ -112,39 +180,25 @@ class PgsqlDriver implements DbDriverInterface
         $this->_pdo->rollBack(); 
     }
     
-    public static function getInstance()
-    {
-        if(self::$_instance === null)
-        {
-            self::$_instance = new self;
-        }
-
-        return self::$_instance;
-    }
-    
     /**
      * Вставляет одну запись в "таблицу"
      * 
      * @param string $table
-     * @param array $data
+     * @param array $set
      */
-    public function insert(string $table, array $data){
+    public function insert(string $table, array $set)
+    {
+        $qc = new QueryCreator();
+        $qc->setInsert($table, $set);
         
-//        :FIX запросить столбцы таблицы(белый список) $table
-        $coolStr = implode(', ', array_keys($data));
-        $ques = implode(', ', array_fill(0, count($data), '?'));
-        $values = array_values($data);
+        $this->_lastQuery = $qc->create();
+        $this->_stm = $this->_pdo->prepare($qc->create());
         
-        $sql = 'INSERT INTO ' . $table . ' (' . $coolStr . ') VALUES ( ' . $ques . ')';
-        $stm = $this->_pdo->prepare($sql);
-        
-        if($stm->execute($values))
+        if($this->_stm->execute($qc->getValues()))
         {
             return true;
         }
-//        :FIX переделать
-        $this->errorInfo = $stm->errorInfo();
-        $this->errorCode = $stm->errorCode();
+        
         return false;
     }
 
@@ -154,7 +208,8 @@ class PgsqlDriver implements DbDriverInterface
      * @param string $table
      * @param array $data
      */
-    public function insertBatch(string $table, array $data){
+    public function insertBatch(string $table, array $data)
+    {
         
 //        :FIX запросить столбцы таблицы(белый список) $table
 //        получаем первую строку
@@ -194,15 +249,16 @@ class PgsqlDriver implements DbDriverInterface
         
         $sql = 'INSERT INTO ' . $table . ' (' . $coolStr . ') VALUES ( ' . $plaveholders . ')';
 //        пытаемся подготовить запрос
-        $stm = $this->_pdo->prepare($sql);
+        $this->_stm = $this->_pdo->prepare($sql);
         
+//        :FIX не работает транзакция
 //        $this->_pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
 //        $this->_pdo->beginTransaction();
         
 //        вставляем проверенные данные
         foreach ($values as $row)
         {
-            $res = $stm->execute($row);
+            $this->_stm->execute($row);
         }
                 
         if(true) // :FIX проверить на наличие ошибок
@@ -219,55 +275,25 @@ class PgsqlDriver implements DbDriverInterface
      * Обновляет "таблицу" значениями $data по условию $where
      * 
      * @param string $table
-     * @param array $data
+     * @param array $set
      * @param array $where
      */
-    public function update(string $table, array $data, array $where){
+    public function update(string $table, array $set, array $where)
+    {
+        $qc = new QueryCreator();
+        $qc->setUpdate($table, $set);
+        $qc->setWhere($where);
         
-//        :FIX проверить ключи(колонки) $data и $where на наличие их в information_shema
-        $set = ''; // :FIX сделать как в where
-        $setterCools = array_keys($data);
-        $values = [];
-        
-        foreach ($setterCools as $col)
-        {
-            if(end($setterCools) === $col)
-            {
-                $set .= ' ' . $col . ' = ?';
-            }
-            else
-            {
-                $set .= ' ' . $col . ' = ?,';
-            }
-            
-            $values[] = $data[$col];
-        }
-        
-        $sql = 'UPDATE ' . $table . ' SET ' . $set;
-        
-        if(is_array($where) && count($where) > 0)
-        {
-            $whereCools = array_keys($where);
-            $firstWhereCol = array_shift($whereCools);
-            $sql .= ' WHERE ' . $firstWhereCol . ' = ?';
-            $values[] = $where[$firstWhereCol];
-            
-            foreach ($whereCools as $col)
-            {
-                $sql .= ' AND ' . $col . ' = ?';
-                $values[] = $where[$col];
-            }
-        }
+        $this->_lastQuery = $qc->create();
         
 //        пытаемся подготовить запрос
-        $stm = $this->_pdo->prepare($sql);
+        $this->_stm = $this->_pdo->prepare($qc->create());
         
-        if($stm->execute($values))
+        if($this->_stm->execute($qc->getValues()))
         {
             return true;
         }
         
-//        :FIX записать ошибки
         return false;
     }
 
@@ -275,23 +301,34 @@ class PgsqlDriver implements DbDriverInterface
      * Возващает одну строку по условию
      * 
      * @param string $table
-     * @param array $data
+     * @param array $where
+     * @param array $cols
      */
     public function getOne(string $table, array $where, array $cols = [])
     {        
         $qc = new QueryCreator();
         $qc->setSelect($table, $cols);
+        $qc->setJoin($this->_getJoin());
         $qc->setWhere($where);
         $qc->setLimit(1);
+
+        $this->_lastQuery = $qc->create();
         
-        $stm = $this->_pdo->prepare($qc->create());
+        $this->_stm = $this->_pdo->prepare($qc->create());
         
-        if($stm->execute($qc->getValues()))
+        if($this->_stm->execute($qc->getValues()))
         {
-            return $stm->fetch(PDO::FETCH_ASSOC);
-        }
+            $fetch = $this->_stm->fetch(PDO::FETCH_ASSOC);
+            $res = [];
+            
+            if($fetch !== FALSE)
+            {
+                $res = $fetch;
+            }
+            
+            return $res;
+        }       
         
-//        :FIX записать ошибки
         return false;
     }
 
@@ -305,13 +342,13 @@ class PgsqlDriver implements DbDriverInterface
     {
         $qc = new QueryCreator();
         $qc->setSelect($table, $cols);
+        $qc->setJoin($this->_getJoin());
                 
-        if($stm = $this->_pdo->query($qc->create()))
+        if($this->_stm = $this->_pdo->query($qc->create()))
         {
-            return $stm->fetchAll(PDO::FETCH_ASSOC);
+            return $this->_stm->fetchAll(PDO::FETCH_ASSOC);
         }
         
-//        :FIX записать ошибки
         return false;
     }
 
@@ -326,17 +363,19 @@ class PgsqlDriver implements DbDriverInterface
     {
         $qc = new QueryCreator();
         $qc->setSelect($table, $cols);
-        $qc->setJoin($this->getJoin());
+        $qc->setJoin($this->_getJoin());
         $qc->setWhere($where);
         
         $this->_lastQuery = $qc->create();
-        $stm = $this->_pdo->prepare($qc->create());
+        $this->_stm = $this->_pdo->prepare($qc->create());
         
-        if($stm->execute($qc->getValues()))
+        if($this->_stm->execute($qc->getValues()))
         {
-            return $stm->fetchAll(PDO::FETCH_ASSOC);
+            return $this->_stm->fetchAll(PDO::FETCH_ASSOC);
         }
-//        :FIX записать ошибки
+        
+        $this->errorCode = $this->_stm->errorCode();
+        $this->errorInfo = $this->_stm->errorInfo();
         return false;
     }
 
@@ -366,33 +405,19 @@ class PgsqlDriver implements DbDriverInterface
      */
     public function delete(string $table, array $where)
     {
-//        :FIX проверить столбцы на наличие из в informaton_shema
-        $cols = array_keys($where);
-        $values = [];
+        $qc = new QueryCreator();
+        $qc->setDelete($table);
+        $qc->setWhere($where);
         
-        $sql = 'DELETE FROM ' . $table;
+        $this->_lastQuery = $qc->create();
         
-        if(count($cols) > 0)
-        {
-            $first = array_shift($cols);
-            $sql .= ' WHERE ' . $first . ' = ?';
-            $values[] = $where[$first];
+        $this->_stm = $this->_pdo->prepare($qc->create());
         
-            foreach ($cols as $col)
-            {
-                $sql .= ' AND ' . $col . ' = ?';
-                $values[] = $where[$col];
-            }
-        }
-        
-        $stm = $this->_pdo->prepare($sql);
-        
-        if($stm->execute($values))
+        if($this->_stm->execute($qc->getValues()))
         {
             return true;
         }
         
-//        :FIX записать ошибки
         return false;
     }
 
@@ -401,16 +426,14 @@ class PgsqlDriver implements DbDriverInterface
      * Если удовлетворяющей $value записи нет - просто вставляет запись
      * 
      * @param string $table
-     * @param array $where Столбец(ы) по которому ищем
-     * @param array $dataRow Зменяющая строка должна содержать в себе все столбцы таблицы $table
+     * @param array $set Столбецы которые заполняем - все в таблице
+     * @param array $where строки которые удаляем
      */
-    public function replace(string $table, array $where, array $dataRow)
-    {
-//        :FIX получить столбцы таблицы information_shema
-        
+    public function replace(string $table, array $set, array $where)
+    {        
         $this->_pdo->beginTransaction();
         
-        if($this->delete($table, $where) && $this->insert($table, $dataRow))
+        if($this->delete($table, $where) && $this->insert($table, $set))
         {
             $this->_pdo->commit();
             return true;

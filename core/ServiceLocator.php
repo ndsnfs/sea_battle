@@ -9,7 +9,7 @@ class ServiceLocator
     public function __construct()
     {
 //        :FIX приходящий конфиг
-        $config = []; //'session'
+        $config = ['session'];
         
         $all = array_merge($this->_defaultServices, $config);
         

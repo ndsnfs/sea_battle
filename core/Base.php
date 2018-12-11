@@ -13,5 +13,6 @@ class Base
     public function redirect($queryString)
     {
         header('Location: ?' . $queryString);
+        exit;
     }
 }

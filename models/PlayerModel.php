@@ -37,7 +37,6 @@ class PlayerModel extends MainModel
     public static function rules()
     {
         return array(
-            'playerId' => 'required|string',
             'playerName' => 'required|alpha',
         );
     }

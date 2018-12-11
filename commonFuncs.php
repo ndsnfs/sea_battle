@@ -31,7 +31,7 @@ function debug(Array $a)
 	echo '</pre>';
 }
 
-function html($data, $action = 'echo')
+function htmlDebug($data, $action = 'echo')
 {
     echo '<!doctype html>';
     echo '<html>';
@@ -43,6 +43,12 @@ function html($data, $action = 'echo')
     elseif($action == 'debug')
     {
         debug($data);
+    }
+    elseif($action == 'dump')
+    {
+        echo '<pre>';
+        var_dump($data);
+        echo '</pre>';
     }
     else
     {

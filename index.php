@@ -1,4 +1,5 @@
 <?php
+
 require_once 'autoload.php';
 require_once 'commonFuncs.php';
 $config = require_once 'config' . DIRECTORY_SEPARATOR . 'config.php';

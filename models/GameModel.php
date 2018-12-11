@@ -2,12 +2,20 @@
 
 class GameModel extends MainModel
 {
+    /**
+     * Уникальный номер игры из двух человек
+     * @var string
+     */
+    private $_number;
+    
     private $_initField = [];
     
     /**
      * @var array ошибки не относящиеся к валидации
      */
     private $_selfErrors = [];
+    
+    
     
     /*-- Правила игры --*/
     
@@ -20,7 +28,7 @@ class GameModel extends MainModel
      * Виды кораблей которые могут быть в игре - "кол-во палуб" => "кол-во кораблей"
      * @var array
      */
-    private static $_shipCntRule = array(1 => 4, 2 => 3, 3 => 2, 4 => 1);
+    private static $_shipCntRule = array(1 => 4/*, 2 => 3, 3 => 2, 4 => 1*/);
     
     /**
      * Максимальное кол-во игроков
@@ -32,6 +40,15 @@ class GameModel extends MainModel
     public function __construct()
     {
         parent::__construct();
+    }
+    
+    /**
+     * Устанавливает уникальный номер игры из двух игроков
+     * @param string $number
+     */
+    public function setNumber(string $number)
+    {
+        $this->_number = $number;
     }
     
     /**
@@ -53,44 +70,44 @@ class GameModel extends MainModel
     /**
      * Ход игрока
      * 
-     * @param string $currentPlayerId Строковое значеине ИД игрока делающего ход
      * @param string $enemyPlayerId Строковое значеине ИД соперника
      * @param string $cell Координаты ячейки по которой стреляют
      * @return bool true в случае попадания, false в случае промаха
      */
-    public function step($currentPlayerId, $enemyPlayerId, $cell) // :bool
-    {        
-        $fields = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
-
-        foreach ($fields as $row)
+    public function step($enemyPlayerId, $cell) // :bool
+    {
+//        найти поле соперника
+        $this->DB->join('battle_fields', 'battle_fields.game_id=battle_games.id');
+        $field = $this->DB->getOne('battle_games', ['battle_games.player_id' => $enemyPlayerId], ['battle_fields.id']);
+        
+//        попробовать найти хотя бы одну ячейку с "неподбитой" палубой
+        $shipCells = $this->DB->getOne('battle_cells', [
+            'field_id' => $field['id'],
+            'coordinat' => $cell,
+            'state' => FieldModel::getShipCell()
+        ]);
+        
+        $state = FieldModel::getFailedCell();
+        $result = FALSE;
+        
+//        Если корабль найден - обновляем state на "подбит" 
+        if(count($shipCells) > 0)
         {
-            if($row['coordinat'] === $cell and $row['status'] == FieldModel::getShipCell()) // :FIX Не жесткое сравнение типов
-            {
-                $this->DB->replace('fields',
-                    [
-                        'player_id' => $enemyPlayerId,
-                        'coordinat' => $cell
-                    ],
-                    [
-                        'player_id' => $enemyPlayerId,
-                        'coordinat' => $cell,
-                        'status' => FieldModel::getWoundCell()
-                    ]
-                );
-                
-                return true;
-            }
+            $state = FieldModel::getWoundCell();
+            $result = TRUE;
         }
-            
-        $this->DB->insert('fields',
-            array(
-                'player_id' => $enemyPlayerId,
+         
+        $this->DB->replace('battle_cells', [
+                'field_id' => $field['id'],
                 'coordinat' => $cell,
-                'status' => FieldModel::getFailedCell()
-            )
+                'state' => $state
+            ], [
+                'field_id' => $field['id'],
+                'coordinat' => $cell,
+            ]
         );
 
-        return false;
+        return $result;
     }
 
     /**
@@ -102,8 +119,7 @@ class GameModel extends MainModel
     public function initPlayer($playerName, $shipsCells)
     {
 //        пробуем создать игрока
-        $id = md5(time());
-        $player = new PlayerModel(['playerId' => (string)$id, 'playerName' => (string)$playerName]);
+        $player = new PlayerModel(['playerName' => (string)$playerName]);
         
         if(!$player->validate())
         {
@@ -129,27 +145,39 @@ class GameModel extends MainModel
             return FALSE;
         }
         
-//        Пробуем создать поле
-        $dataInsertBatch = [];
-
-        foreach($shipsCells as $coordinat => $status)
-        {
-            $dataInsertBatch[] = ['player_id' => $id, 'coordinat' => $coordinat, 'status' => $status];
-        }
-        
         $this->DB->transBegin();
         
-        $isInsertedPlayer = $this->DB->insert('players', ['id' => (string)$id, 'name' => (string)$playerName]);
-        $isInsertedField = $this->DB->insertBatch('fields', $dataInsertBatch);
+//        Вставляем игрока
+        $isInsertedPlayer = $this->DB->insert('battle_players', ['name' => $playerName]);
+        $playerId = $this->DB->lastInsertId('auto_inc_battle_players');
         
-        if($isInsertedPlayer && $isInsertedField)
+//        Вставляем игру
+        $game = $this->DB->insert('battle_games', ['number' => $this->_number, 'player_id' => $playerId]);
+        $gameId = $this->DB->lastInsertId('auto_inc_battle_games');
+        
+//        Вставляем поле
+        $isInsertedField = $this->DB->insert('battle_fields', ['game_id' => $gameId]);
+        $fieldId = $this->DB->lastInsertId('auto_inc_battle_fields');
+        
+//        Готовим ячейки к вставке
+        $dataInsertBatch = [];
+        
+        foreach($shipsCells as $coordinat => $state)
         {
-            $this->DB->transCommit();
-            return TRUE;
+            $dataInsertBatch[] = ['field_id' => $fieldId, 'coordinat' => $coordinat, 'state' => $state];
         }
         
-        $this->DB->transRollback();
-        return FALSE;
+        $isInsertedCells = $this->DB->insertBatch('battle_cells', $dataInsertBatch);
+        $errCells = $this->DB->errorInfo();
+        
+        if($this->DB->hasErrors())
+        {
+            $this->DB->transRollback();
+            return FALSE;
+        }
+        
+        $this->DB->transCommit();
+        return TRUE;
     }
     
     /**
@@ -173,11 +201,15 @@ class GameModel extends MainModel
     public function getPlayers()
     {
         $arrTmp = [];
-        $players = $this->DB->getAll('players');
-
+        
+        $cols = ['battle_players.name as player_name', 'battle_players.id as player_id'];
+        $where = ['battle_games.number' => $this->_number];
+        $this->DB->join('battle_players', 'battle_players.id = battle_games.player_id');
+        $players = $this->DB->getWhere('battle_games', $where, $cols);
+        
         foreach ($players as $p)
         {
-            $arrTmp[] = new PlayerModel(['playerId' => $p['id'], 'playerName' => $p['name']]);
+            $arrTmp[] = new PlayerModel(['playerId' => $p['player_id'], 'playerName' => $p['player_name']]);
         }
 
         return $arrTmp;
@@ -191,7 +223,12 @@ class GameModel extends MainModel
      */
     public function getPlayer($playerId)
     {
-        $playerArr = $this->DB->getOne('players', ['id' => $playerId]);
+        $playerArr = $this->DB->getOne('battle_players', ['id' => $playerId]);
+        
+        if(!$playerArr)
+        {
+            return NULL;
+        }
 
         if($playerArr)
         {
@@ -200,7 +237,7 @@ class GameModel extends MainModel
             return $playerObj;
         }
 
-        return null;
+        return NULL;
     }
 
     /**
@@ -210,13 +247,19 @@ class GameModel extends MainModel
      */
     public function getField($playerId)
     {
-        $state = $this->DB->getWhere('fields', ['player_id' => $playerId]);
+        $cols = ['battle_cells.coordinat', 'battle_cells.state'];
+        $where = ['battle_games.player_id' => $playerId];
+        
+        $this->DB->join('battle_games', 'battle_games.id=battle_fields.game_id');
+        $this->DB->join('battle_cells', 'battle_cells.field_id=battle_fields.id');
+        $state = $this->DB->getWhere('battle_fields', $where, $cols);
+        
 //        подготавливаем данные для добавления
         $tmp = [];
         
         foreach($state as $row)
         {
-            $tmp[$row['coordinat']] = $row['status'];
+            $tmp[$row['coordinat']] = $row['state'];
         }
 
         $fieldModel = new FieldModel();
@@ -259,17 +302,30 @@ class GameModel extends MainModel
 
     /**
      * Стирает данные о игре
-     * 
+     * @param int Ид игрока завершившего игру
      * @return bool
      */
     public function reset()
     {
-        if($this->DB->clear('fields') && $this->DB->clear('players'))
+        $playersRows = $this->DB->getWhere('battle_games', ['number' => $this->_number]);
+        
+        $this->DB->transBegin();
+        
+        foreach ($playersRows as $playerRow)
         {
-            return true;
+            $this->DB->delete('battle_players', ['id' => $playerRow['player_id']]);
         }
         
-        return false;
+        if($this->DB->hasErrors())
+        {
+            $this->DB->transRollback();
+            htmlDebug($this->DB->errorInfo(), 'dump');
+            return FALSE;
+        }
+        
+        $this->DB->transCommit();
+        return TRUE;
+        
     }
 
     /**
@@ -280,7 +336,7 @@ class GameModel extends MainModel
      */
     public function isInit()
     {
-        $p = $this->DB->getAll('players');
+        $p = $this->DB->getWhere('battle_games', ['number' => $this->_number]);
 
         if(self::$_maxCntPlayers === count($p))
         {
@@ -297,17 +353,23 @@ class GameModel extends MainModel
      */
     public function isEnd($enemyPlayerId)
     {
-        $field = $this->DB->getWhere('fields', array('player_id' => $enemyPlayerId));
+        $cols = ['battle_cells.state'];
+        $where = ['battle_games.player_id' => (int)$enemyPlayerId, 'battle_cells.state' => FieldModel::getShipCell()];
+        $this->DB->join('battle_fields', 'battle_fields.game_id=battle_games.id');
+        $this->DB->join('battle_cells', 'battle_cells.field_id=battle_fields.id');
+        $field = $this->DB->getOne('battle_games', $where, $cols);
         
-//        :FIX тут добавить вставку в БД postgres
-        
-        foreach ($field as $row)
+        if($this->DB->hasErrors())
         {
-//            если есть хотя бы одна ячейка с неподбитым кораблем значит игра не закончена
-            if($row['status'] == FieldModel::getShipCell()) // :FIX не жесткое сравнение
-            {
-                return false;
-            }
+//            :FIX Модель бросает исключение
+//            :FIX Возвращаемое значение может быть не только bool, но и ошибка
+            throw new Exception('Пофикси ошибки');
+        }
+        
+//        Если массив не пустой
+        if(!empty($field))
+        {
+            return false;
         }
         
         return true;
