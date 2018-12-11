@@ -120,7 +120,7 @@ class Battle extends Base
     /**
      * Сброс состояния игры, может делать любой из игроков
      */
-    public function exit_from()
+    public function exitf()
     {
         if(!App::$serv->session->has('gameNumber'))
         {
