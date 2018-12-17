@@ -54,25 +54,25 @@ class FieldModel extends MainModel
      * Максимальный размер поля
      * @var int 
      */
-    public $maxCoordinat;
+    public $maxCoordinat = 9;
     
     /**
      * Содержит кол-во кораблей с кол-вом палуб
      * @var array 
      */
-    public $shipsCnt;
+    public $shipsCnt = [1 => 4/*, 2 => 3, 3 => 2, 4 => 1*/];
 
     /**
      * Правила по которым проверяются окружающие палубу ячейки(все)
      * @var array
      */
-    private static $_envRule = array('0:-1', '1:-1', '1:0', '1:1', '0:1', '-1:1', '-1:0', '-1:-1');
+    private static $_envRule = ['0:-1', '1:-1', '1:0', '1:1', '0:1', '-1:1', '-1:0', '-1:-1'];
 
     /**
      * Правила по которым проверяются окружающие палубу ячейки(верх, право, низ, лево)
      * @var array
      */
-    private static $_reducedEnvRules = array('0:-1', '1:0', '0:1', '-1:0');
+    private static $_reducedEnvRules = ['0:-1', '1:0', '0:1', '-1:0'];
     
     /**
      * Возвращает массив правил по которым проверяются свойства
@@ -81,8 +81,7 @@ class FieldModel extends MainModel
     public static function rules()
     {
         return array(
-            'fieldState' => 'custom_mainValidator',
-            'maxCoordinat' => 'required|int'
+            'fieldState' => 'custom_mainValidator'
         );
     }
     
@@ -91,15 +90,6 @@ class FieldModel extends MainModel
     
     
     /*-- SETTERS --*/
-    
-    /**
-     * Задает  максимальный размер поля
-     * @param int $var
-     */
-    public function setMaxCoordinat($var)
-    {
-        $this->maxCoordinat = $var;
-    }
     
     /**
      * Задает кол-во кораблей с опред-ым кол-вом палуб
@@ -132,7 +122,7 @@ class FieldModel extends MainModel
         while(true)
         {
             $coordinat = $x . ':' . $y;
-            $state = Cell::getEmptyCell();
+            $state = Cell::EMPTY_CELL;
             
             if(array_key_exists($coordinat, $fieldState))
             {
@@ -145,7 +135,7 @@ class FieldModel extends MainModel
             {
 //                т.к. поле должно быть создано для показа ошибок пользователю
 //                создаем пустую ячейку
-                $cell = new Cell(array('coordinat' => $coordinat, 'state' => Cell::getEmptyCell()));
+                $cell = new Cell(array('coordinat' => $coordinat, 'state' => Cell::EMPTY_CELL));
                 
             }
             
@@ -159,7 +149,7 @@ class FieldModel extends MainModel
                 $y++;
             }
 //            если состояние координаты  - корабль, тогда формируем времменные хранилища
-            if((int)$state == Cell::getShipCell())
+            if((int)$state == Cell::SHIP_CELL)
             {
                 $this->SHIPS_COORDINAT[] = $coordinat;
                 $this->_TEMP[] = $cell;
@@ -184,7 +174,7 @@ class FieldModel extends MainModel
      */
     public static function getEmptyCell()
     {
-        return Cell::getEmptyCell();
+        return Cell::EMPTY_CELL;
     }
 
     /**
@@ -192,7 +182,7 @@ class FieldModel extends MainModel
      */
     public static function getShipCell()
     {
-        return Cell::getShipCell();
+        return Cell::SHIP_CELL;
     }
 
     /**
@@ -200,7 +190,7 @@ class FieldModel extends MainModel
      */
     public static function getFailedCell()
     {
-        return Cell::getFailedCell();
+        return Cell::FAILED_CELL;
     }
 
     /**
@@ -208,7 +198,7 @@ class FieldModel extends MainModel
      */
     public static function getWoundCell()
     {
-        return Cell::getWoundCell();
+        return Cell::WOUND_CELL;
     }
     
     /**

@@ -8,7 +8,13 @@ DROP TABLE battle_fields;
 DROP TABLE battle_games;
 DROP TABLE battle_players;
 
---CREATE SEQUENCE auto_inc_battle_players;
+DROP SEQUENCE auto_inc_battle_players;
+DROP SEQUENCE auto_inc_battle_games;
+DROP SEQUENCE auto_inc_battle_fields;
+
+CREATE SEQUENCE auto_inc_battle_players;
+CREATE SEQUENCE auto_inc_battle_games;
+CREATE SEQUENCE auto_inc_battle_fields;
 
 CREATE TABLE battle_players(
 	id INT NOT NULL DEFAULT nextval('auto_inc_battle_players'),
@@ -17,8 +23,6 @@ CREATE TABLE battle_players(
 	UNIQUE (name)
 );
 
---CREATE SEQUENCE auto_inc_battle_games;
-
 CREATE TABLE battle_games(
 	id INT NOT NULL DEFAULT nextval('auto_inc_battle_games'),
 	number VARCHAR(80) NOT NULL,
@@ -26,8 +30,6 @@ CREATE TABLE battle_games(
 	PRIMARY KEY (id),
 	FOREIGN KEY (player_id) REFERENCES battle_players(id) ON DELETE CASCADE
 );
-
---CREATE SEQUENCE auto_inc_battle_fields;
 
 CREATE TABLE battle_fields(
 	id INT NOT NULL DEFAULT nextval('auto_inc_battle_fields'),

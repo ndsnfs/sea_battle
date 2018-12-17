@@ -20,17 +20,6 @@ class GameModel extends MainModel
     /*-- Правила игры --*/
     
     /**
-     * @var int Максимальный размер поля
-     */
-    private static $_maxCoordinat = 9;
-
-    /**
-     * Виды кораблей которые могут быть в игре - "кол-во палуб" => "кол-во кораблей"
-     * @var array
-     */
-    private static $_shipCntRule = array(1 => 4/*, 2 => 3, 3 => 2, 4 => 1*/);
-    
-    /**
      * Максимальное кол-во игроков
      */
     private static $_maxCntPlayers = 2;
@@ -128,8 +117,6 @@ class GameModel extends MainModel
 
 //        Пробуем создать его поле
         $field = new FieldModel();
-        $field->setShipsCnt(self::$_shipCntRule);
-        $field->setMaxCoordinat(self::$_maxCoordinat);
         $field->createField($shipsCells);
         
         if(!$field->validate())
@@ -187,7 +174,6 @@ class GameModel extends MainModel
     public function getEmptyField()
     {
         $field = new FieldModel();
-        $field->setMaxCoordinat(self::$_maxCoordinat);
         $field->createField();
         
         return $field->FIELD;
@@ -263,8 +249,6 @@ class GameModel extends MainModel
         }
 
         $fieldModel = new FieldModel();
-        $fieldModel->setShipsCnt(self::$_shipCntRule);
-        $fieldModel->setMaxCoordinat(self::$_maxCoordinat);
         $fieldModel->createField($tmp);
         
         return $fieldModel->FIELD;

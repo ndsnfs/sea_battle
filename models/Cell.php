@@ -22,26 +22,6 @@ class Cell extends MainModel
     const FAILED_CELL = 3;
     const WOUND_CELL = 4;
     
-    public static function getEmptyCell()
-    {
-        return self::EMPTY_CELL;
-    }
-    
-    public static function getShipCell()
-    {
-        return self::SHIP_CELL;
-    }
-    
-    public static function getFailedCell()
-    {
-        return self::FAILED_CELL;
-    }
-    
-    public static function getWoundCell()
-    {
-        return self::WOUND_CELL;
-    }
-    
     /**
      * Имитирует метод load, т.е. принимает и сохраняет свойства
      * В базу не лезем, поэтому вызывать род. конструктор нет смысла - просто переопределяем
@@ -49,6 +29,8 @@ class Cell extends MainModel
      */
     public function __construct(array $data)
     {
+        parent::__construct();
+        
         foreach ($data as $prop => $val)
         {            
             if(property_exists($this, $prop))
